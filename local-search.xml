@@ -4,6 +4,33 @@
   
   
   <entry>
+    <title>单例模式</title>
+    <link href="/2021/03/16/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/03/16/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>应用程序仅需要一个对象实例。此外，需要进行懒加载和全局访问。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>确保这个类只有一个实例，并提供对这个类的全局访问方式。</li><li>首次使用时对该类初始化。</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><h2 id="懒汉"><a href="#懒汉" class="headerlink" title="懒汉"></a>懒汉</h2><h3 id="线程不安全"><a href="#线程不安全" class="headerlink" title="线程不安全"></a>线程不安全</h3><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Singleton</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> Singleton instance;    <span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-title">Singleton</span><span class="hljs-params">()</span> </span>&#123;&#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Singleton <span class="hljs-title">getInstance</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">if</span> (instance == <span class="hljs-keyword">null</span>) &#123;            instance = <span class="hljs-keyword">new</span> Singleton();        &#125;        <span class="hljs-keyword">return</span> instance;    &#125;&#125;</code></pre><h3 id="线程安全"><a href="#线程安全" class="headerlink" title="线程安全"></a>线程安全</h3><p>使用 <strong>synchronized</strong> 关键字加锁，能够在多线程中工作，但效率较低。</p><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Singleton</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> Singleton instance;    <span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-title">Singleton</span> <span class="hljs-params">()</span></span>&#123;&#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">synchronized</span> Singleton <span class="hljs-title">getInstance</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">if</span> (instance == <span class="hljs-keyword">null</span>) &#123;            instance = <span class="hljs-keyword">new</span> Singleton();        &#125;        <span class="hljs-keyword">return</span> instance;    &#125;  &#125;</code></pre><h2 id="饿汉"><a href="#饿汉" class="headerlink" title="饿汉"></a>饿汉</h2><p>对象在类加载时就实例化，避免了多线程的同步问题，没有加锁，效率较高。但是在类加载时就初始化，浪费内存。</p><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Singleton</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> Singleton instance = <span class="hljs-keyword">new</span> Singleton();    <span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-title">Singleton</span> <span class="hljs-params">()</span></span>&#123;&#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Singleton <span class="hljs-title">getInstance</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> instance;    &#125;&#125;</code></pre><h2 id="双重校验锁"><a href="#双重校验锁" class="headerlink" title="双重校验锁"></a>双重校验锁</h2><p>采用双锁机制，线程安全，同时效率也比较高。<strong>volatile</strong> 关键字是 Java 虚拟机提供的轻量级同步机制，被其修饰的变量能够保证每个线程获取到该变量的最新值，从而避免出现脏读的现象。</p><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Singleton</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">volatile</span> <span class="hljs-keyword">static</span> Singleton singleton;    <span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-title">Singleton</span> <span class="hljs-params">()</span></span>&#123;&#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Singleton <span class="hljs-title">getSingleton</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">if</span> (singleton == <span class="hljs-keyword">null</span>) &#123;            <span class="hljs-keyword">synchronized</span> (Singleton.class) &#123;                <span class="hljs-keyword">if</span> (singleton == <span class="hljs-keyword">null</span>) &#123;                    singleton = <span class="hljs-keyword">new</span> Singleton();                &#125;            &#125;        &#125;        <span class="hljs-keyword">return</span> singleton;    &#125;&#125;</code></pre><h2 id="登记式-静态内部类"><a href="#登记式-静态内部类" class="headerlink" title="登记式/静态内部类"></a>登记式/静态内部类</h2><p>和双重校验锁效果一样，但实现更简单。对静态域使用延迟初始化，应使用这种方式而不是双检锁。</p><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Singleton</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-title">Singleton</span><span class="hljs-params">()</span> </span>&#123;&#125;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SingletonHolder</span> </span>&#123;        <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> Singleton INSTANCE = <span class="hljs-keyword">new</span> Singleton();    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Singleton <span class="hljs-title">getInstance</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> SingletonHolder.INSTANCE;    &#125;&#125;</code></pre><h2 id="枚举"><a href="#枚举" class="headerlink" title="枚举"></a>枚举</h2><p>这是实现单例的最佳方法，更简洁，同时自动支持序列化机制，绝对防止多次实例化。</p><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">enum</span> <span class="hljs-title">Singleton</span> </span>&#123;    INSTANCE;    <span class="hljs-comment">//...</span>&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>创建型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>分布式系统</title>
     <link href="/2020/10/30/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/"/>
     <url>/2020/10/30/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/</url>
@@ -22,7 +49,7 @@
     
     <tags>
       
-      <tag>Distributed System</tag>
+      <tag>分布式系统</tag>
       
     </tags>
     
@@ -67,14 +94,16 @@
     
     <categories>
       
-      <category>DesignPattern</category>
+      <category>设计模式</category>
+      
+      <category>概述</category>
       
     </categories>
     
     
     <tags>
       
-      <tag>DesignPattern</tag>
+      <tag>设计模式</tag>
       
     </tags>
     
