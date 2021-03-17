@@ -4,6 +4,35 @@
   
   
   <entry>
+    <title>Spark概述</title>
+    <link href="/2021/03/17/Spark%E6%A6%82%E8%BF%B0/"/>
+    <url>/2021/03/17/Spark%E6%A6%82%E8%BF%B0/</url>
+    
+    <content type="html"><![CDATA[<h1 id="Spark概述"><a href="#Spark概述" class="headerlink" title="Spark概述"></a>Spark概述</h1><h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><h3 id="RDD"><a href="#RDD" class="headerlink" title="RDD"></a>RDD</h3><p>弹性分布式数据集 （ Resilient Distrbuted Dataset），本质是一种分布式的内存抽象，表示一个只读的数据分区（Partition）集合。</p><h3 id="DAG"><a href="#DAG" class="headerlink" title="DAG"></a>DAG</h3><p>有向无环图（Directed Acycle graph），Spark 使用 DAG 来反映各 RDD 间的依赖或血缘关系。</p><h3 id="Partition"><a href="#Partition" class="headerlink" title="Partition"></a>Partition</h3><p>数据分区，即一个 RDD 的数据可以划分为多少个分区，Spark 根据 Partition 的数量来确定 Task 的数量。</p><h3 id="NarrowDependency"><a href="#NarrowDependency" class="headerlink" title="NarrowDependency"></a>NarrowDependency</h3><p>窄依赖，即子 RDD 依赖于父 RDD 中固定的 Partition。分为 OneToOneDependency 和 RangeDependency 两种。</p><h3 id="ShuffleDependency"><a href="#ShuffleDependency" class="headerlink" title="ShuffleDependency"></a>ShuffleDependency</h3><p> 宽依赖，即子 RDD 对父 RDD 中的所有 Partition 都可能产生依赖。</p><h3 id="Job"><a href="#Job" class="headerlink" title="Job"></a>Job</h3><p>用户提交的作业。当 RDD 及 DAG 被提交给 DAGScheduler 后，DAGScheduler 会将所有 RDD 中的转换及动作视为一个 Job（由一到多个 Task 组成）。</p><h3 id="Stage"><a href="#Stage" class="headerlink" title="Stage"></a>Stage</h3><p>Job 的执行阶段。DAGScheduler 按照 ShuffleDependency 作为 Stage 的划分节点对 RDD 的 DAG 进行 Stage 划分。一个 Job 可能被分为一到多个 Stage，主要为 ShuffleMapStage 和 ResultStage 两种。</p><h3 id="Task"><a href="#Task" class="headerlink" title="Task"></a>Task</h3><p>具体执行任务。一个 Job 在每个 Stage 内都会按照 RDD 的 Partition 数量，创建多个 Task。Task 分为 ShuffleMapTask（ShuffleMapStage） 和 ResultTask（ResultStage）两种，对应 Hadoop 中的 Map 任务和 Reduce 任务。</p><h3 id="Shuffle"><a href="#Shuffle" class="headerlink" title="Shuffle"></a>Shuffle</h3><p>所有 MapReduce 计算框架的核心执行阶段，用于打通 Map 任务的输出和 Reduce 任务的输入，Map 任务的中间输出结果按照指定的分区策略（例如按照 key 值哈希）分配给处理某一分区的 Reduce 任务。</p><h2 id="基本架构"><a href="#基本架构" class="headerlink" title="基本架构"></a>基本架构</h2><p>从集群部署的角度来看，Spark 由集群管理器（Cluster Manager）、工作节点（Worker）、执行器（Executor）、驱动器（Driver）、应用程序（Application）等部分组成，如下图所示。</p><p><img src="1.png" alt="Spark基本架构"></p><h3 id="Cluster-Manager"><a href="#Cluster-Manager" class="headerlink" title="Cluster Manager"></a>Cluster Manager</h3><p>Spark 的集群管理器，主要负责对整个集群资源的分配与管理。在 YARN 模式下为 ResourceManager；在 Mesos 模式下为 MesosMaster；在 Standlone 模式下为 Master。</p><p>分配的资源属于一级分配，将各个 Worker 上的内存、CPU 等资源分配给 Application，但是并不负责对 Executor 的资源分配。</p><h3 id="Worker"><a href="#Worker" class="headerlink" title="Worker"></a>Worker</h3><p>Spark 的工作节点，YARN 下由 NodeManager 替代。主要负责申请资源并创建 Executor，同时给其分配资源。在 Standalone 模式下，Master 将 Worker 上的内存、CPU 及 Executor 等资源分配给 Application 后，将命令 Worker 启动 CoarseGrainedExecutorBackend 进程（创建 Executor 实例）。</p><h3 id="Executor"><a href="#Executor" class="headerlink" title="Executor"></a>Executor</h3><p>执行计算任务的一线组件，主要负责任务的执行及与 Worker、Driver 的信息同步。</p><h3 id="Driver"><a href="#Driver" class="headerlink" title="Driver"></a>Driver</h3><p>Application 的驱动程序，接受用户的 SQL 请求并进行解析。Driver 可以运行在 Application 中，也可以由 Application 提交给 Cluster Manager 并由其安排 Worker 运行。</p><h3 id="Application"><a href="#Application" class="headerlink" title="Application"></a>Application</h3><p>表示用户的应用程序，通过 Spark API 进行 RDD 的转换和 DAG 的构建，并通过 Driver 将 Application 注册到 Cluster Manager。</p><h2 id="模块划分"><a href="#模块划分" class="headerlink" title="模块划分"></a>模块划分</h2><p>整个 Spark 主要由 Spark Core、Spark SQL、Spark Streaming、Grapx、MLlib 组成，其核心引擎部分是 Spark Core，Spark SQL 部分则支持了 SQL 及 Hive，本文也着重分析的这两部分。</p><hr><h3 id="Spark-Core"><a href="#Spark-Core" class="headerlink" title="Spark Core"></a>Spark Core</h3><h4 id="基础设施"><a href="#基础设施" class="headerlink" title="基础设施"></a>基础设施</h4><p>包括 Spark 的配置（SparkConf）、Spark 内置的 RPC 框架（早期使用的是 Akka）、事件总线（ListenerBus）、度量系统。</p><ol><li>SparkConf 管理 Spark 应用程序的各种配置信息。</li><li>RPC 框架使用 Netty 实现，有同步和异步之分。</li><li>事件总线是 SparkContext 内部各个组件间使用事件 - 监听器模式异步调用的实现。</li><li>度量系统由 Spark 中的多种度量源（Source）和多种度量输出（Sink）构成，完成对整个 Spark 集群中各个组件运行期状态的监控。</li></ol><h4 id="SparkContext"><a href="#SparkContext" class="headerlink" title="SparkContext"></a>SparkContext</h4><p>在正式提交应用程序之前，首先需要初始化 SparkContext。其隐藏了网络通信、分布式部署、消息通信、存储体系、计算引擎、度量系统、文件服务、WebUI 等内容。</p><h4 id="SparkEnv"><a href="#SparkEnv" class="headerlink" title="SparkEnv"></a>SparkEnv</h4><p>Spark 的执行环境，是 Spark 中 Task 运行所必需的组件。内部封装了 RPC 环境（RpcEnv）、序列化管理器、广播管理器（BroadcastManager）、Map 任务输出跟踪器（MapOutputTracker）、存储体系、度量系统（MetricSystem）、输出提交协调器（OutputCommitCoordinator）等 Task 运行所需的各种组件。</p><h4 id="存储体系"><a href="#存储体系" class="headerlink" title="存储体系"></a>存储体系</h4><p>Spark 优先考虑使用各节点的内存作为存储，当内存不足时才会考虑使用磁盘，极大地减少了磁盘 I/O。Spark 的内存空间还提供了 Tungsten 的实现，直接操作操作系统的内存。</p><h4 id="调度系统"><a href="#调度系统" class="headerlink" title="调度系统"></a>调度系统</h4><p>主要由 DAGScheduler 和 TaskScheduler 组成，都内置在 SparkContext 中。DAGSCheduler 负责创建 Job、将 DAG 中的 RDD 划分到不同的 Stage、给 Stage 创建对应的 Task、批量提交 Task 等功能。TaskScheduler 负责按照 FIFO 或者 FAIR 等调度算法对批量 Task 进行调度、给 Task 分配资源；将 Task 发送到 Executor 上由其执行。</p><h4 id="计算引擎"><a href="#计算引擎" class="headerlink" title="计算引擎"></a>计算引擎</h4><p>由内存管理器（MemoryManager）、Tungsten、任务内存管理器（TaskMemoryManager）、Task、外部排序器（ExternalSorter）、Shuffle 管理器（ShuffleManager）等组成。</p><hr><h3 id="Spark-SQL"><a href="#Spark-SQL" class="headerlink" title="Spark SQL"></a>Spark SQL</h3><h4 id="编译器-Parser"><a href="#编译器-Parser" class="headerlink" title="编译器 Parser"></a>编译器 Parser</h4><p>Spark SQL 采用 <strong>ANTLR4</strong> 作为 SQL 语法工具。它有两种遍历模式：监听器模式（Listener）和访问者模式（Visitor），Spark 主要采用的是后者，基于 ANTLR4 文件来生成词法分析器（SqlBaseLexer）、语法分析器（SqlBaseParser）和访问者类（SqlBaseVisitor 接口与 SqlBaseBaseVisitor 类）。</p><p>当面临开发新的语法支持时，首先改动 SqlBase.g4 文件，然后在 AstBuilder 等类中添加相应的访问逻辑，最后添加执行逻辑即可。</p><h4 id="逻辑计划"><a href="#逻辑计划" class="headerlink" title="逻辑计划"></a>逻辑计划</h4><p>在此阶段，SQL 语句转换为树结构形态的逻辑算子树，SQL 中包含的各种处理逻辑（过滤、裁剪等）和数据信息都会被整合在逻辑算子树的不同节点中。在实现层面被定义为 LogicalPlan 类。</p><p>从 SQL 语句经过 SparkSqlParser 解析生成 Unresolved LogicalPlan，到最后优化成为 Optimized LogicalPlan，再传递到下一个阶段用于物理执行计划的生成。</p><h4 id="物理计划"><a href="#物理计划" class="headerlink" title="物理计划"></a>物理计划</h4><p>这是 Spark SQL 整个查询过程处理流程的最后一步，与底层平台紧密相关。Spark SQL 会对生成的逻辑算子树进一步处理得到物理算子树，并将 LogicalPlan 节点及其所包含的各种信息映射成 Spark Core 计算模型的元素，如 RDD、Transformation 和 Action 等，其实现类为 SparkPlan。</p><hr><h2 id="References"><a href="#References" class="headerlink" title="References"></a>References</h2><ul><li><a href="http://spark.apache.org/docs/latest/">Spark官方文档</a></li><li><a href="https://github.com/apache/spark">Spark源码</a></li><li><a href="https://book.douban.com/subject/30157181/">Spark内核设计的艺术</a></li><li><a href="https://book.douban.com/subject/30296615/">Spark SQL内核剖析</a></li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>分布式系统</category>
+      
+      <category>分布式计算</category>
+      
+      <category>Spark</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Spark</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>工厂模式</title>
     <link href="/2021/03/16/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F/"/>
     <url>/2021/03/16/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F/</url>
@@ -89,7 +118,7 @@
     <link href="/2020/10/30/HBase%E6%A6%82%E8%BF%B0/"/>
     <url>/2020/10/30/HBase%E6%A6%82%E8%BF%B0/</url>
     
-    <content type="html"><![CDATA[<h1 id="HBase-概述"><a href="#HBase-概述" class="headerlink" title="HBase 概述"></a>HBase 概述</h1><p>从使用角度来看，HBase 包含了大量的关系型数据库的基本概念——表、行、列，我们通常也说 HBase 是面向列式的存储，包括我在面试一些小伙伴的时候也聊到过这个问题，不少人都认为 HBase 是列存的，但这个理解是有偏差的。</p><p>我们先简单说一下行存和列存。列式存储数据库以列为单位聚合数据，然后将列值顺序地存入磁盘，这种存储方法不同于列式存储的传统数据库，行式存储数据库连续地存储整行，下图展示了列式存储和行式存储的不同物理结构：</p><!--居左格式显示--><!--<div align=left><img src="1.svg" align="center" width = "430" height = "400" alt="RowOrColumn Storage"/>`</div>--><!-- 去除 Viewer does not support full SVG 1.1 水印--><!--sed -i 's/<text text-anchor="middle" font-size="10px" x="50%" y="100%">Viewer does not support full SVG 1.1<\/text>//g' *.svg--><p><img src="1.jpg"></p><p>行存更适合结构化数据，传统的关系型数据库基本都是行式存储，这样无论是在事务的支持还是在多表关联的场景下都能很好地发挥作用。而列存则比较适合非结构化或半结构化数据，只需要进行特定的查询，比如上表中行存有三个字段，而此时我们的业务只需要查出 name 这列的数据，因此只返回一列的查询无疑效率是最高的，在数据量很大的情况下可以减少 I/O，同时由于每列的数据类型都是一样的，我们还可以针对不同的数据类型进行压缩的优化，在查询时降低带宽的消耗。</p><p>HBase 在设计上有一个列簇的概念，那么当一个列簇下有多个列时，可以说此时 HBase 在逻辑存储上是行存的；若是一个列簇一个列，则可以说是列存的，然而其最终在物理存储上依然是 KV 的。</p><h2 id="数据模型"><a href="#数据模型" class="headerlink" title="数据模型"></a>数据模型</h2><p>下图是 HBase 的数据模型。</p><p><img src="2.jpg"></p><p>HBase</p><h2 id="架构设计"><a href="#架构设计" class="headerlink" title="架构设计"></a>架构设计</h2><p>下图是 HBase 的架构图。</p><p><img src="3.jpg"></p><p>HMaster</p>]]></content>
+    <content type="html"><![CDATA[<h1 id="HBase-概述"><a href="#HBase-概述" class="headerlink" title="HBase 概述"></a>HBase 概述</h1><p>从使用角度来看，HBase 包含了大量的关系型数据库的基本概念——表、行、列，我们通常也说 HBase 是面向列式的存储，包括我在面试一些小伙伴的时候也聊到过这个问题，不少人都认为 HBase 是列存的，但这个理解是有偏差的。</p><p>我们先简单说一下行存和列存。列式存储数据库以列为单位聚合数据，然后将列值顺序地存入磁盘，这种存储方法不同于列式存储的传统数据库，行式存储数据库连续地存储整行，下图展示了列式存储和行式存储的不同物理结构：</p><!--居左格式显示--><!--<div align=left><img src="1.svg" align="center" width = "430" height = "400" alt="RowOrColumn Storage"/>`</div>--><!-- 去除 Viewer does not support full SVG 1.1 水印--><!--sed -i 's/<text text-anchor="middle" font-size="10px" x="50%" y="100%">Viewer does not support full SVG 1.1<\/text>//g' *.svg--><p><img src="1.jpg"></p><p>行存更适合结构化数据，传统的关系型数据库基本都是行式存储，这样无论是在事务的支持还是在多表关联的场景下都能很好地发挥作用。而列存则比较适合非结构化或半结构化数据，只需要进行特定的查询，比如上表中行存有三个字段，而此时我们的业务只需要查出 name 这列的数据，因此只返回一列的查询无疑效率是最高的，在数据量很大的情况下可以减少 I/O，同时由于每列的数据类型都是一样的，我们还可以针对不同的数据类型进行压缩的优化，在查询时降低带宽的消耗。</p><p>HBase 在设计上有一个列簇的概念，那么当一个列簇下有多个列时，可以说此时 HBase 在逻辑存储上是行存的；若是一个列簇一个列，则可以说是列存的，然而其最终在物理存储上依然是 KV 的。</p><h2 id="数据模型"><a href="#数据模型" class="headerlink" title="数据模型"></a>数据模型</h2><p>下图是 HBase 的数据模型。</p><p><img src="2.jpg"></p><p>HBase</p><h2 id="架构设计"><a href="#架构设计" class="headerlink" title="架构设计"></a>架构设计</h2><p>下图是 HBase 的架构图。</p><p><img src="3.jpg"></p>]]></content>
     
     
     <categories>
@@ -97,6 +126,8 @@
       <category>分布式系统</category>
       
       <category>分布式存储</category>
+      
+      <category>HBase</category>
       
     </categories>
     
