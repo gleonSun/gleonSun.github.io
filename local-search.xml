@@ -4,6 +4,60 @@
   
   
   <entry>
+    <title>桥接模式</title>
+    <link href="/2021/03/26/%E6%A1%A5%E6%8E%A5%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/03/26/%E6%A1%A5%E6%8E%A5%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>用继承会导致类爆炸问题，抽象和实现不能独立扩展或组合。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>将抽象与实现解耦，使得两者可以独立变化</li><li>在继承层次结构中发布接口，并将实现隐藏在其自己的继承层次结构中</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">DrawAPI</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">drawCircle</span><span class="hljs-params">(<span class="hljs-keyword">int</span> radius, <span class="hljs-keyword">int</span> x, <span class="hljs-keyword">int</span> y)</span></span>;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RedCircle</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">DrawAPI</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">drawCircle</span><span class="hljs-params">(<span class="hljs-keyword">int</span> radius, <span class="hljs-keyword">int</span> x, <span class="hljs-keyword">int</span> y)</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Drawing RedCircle &#123;radius: &quot;</span> + radius + <span class="hljs-string">&quot;, x: &quot;</span> + x + <span class="hljs-string">&quot;, y: &quot;</span> + y);    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BlueCircle</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">DrawAPI</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">drawCircle</span><span class="hljs-params">(<span class="hljs-keyword">int</span> radius, <span class="hljs-keyword">int</span> x, <span class="hljs-keyword">int</span> y)</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Drawing BlueCircle &#123;radius: &quot;</span> + radius + <span class="hljs-string">&quot;, x: &quot;</span> + x + <span class="hljs-string">&quot;, y: &quot;</span> + y);    &#125;&#125;<span class="hljs-keyword">abstract</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Shape</span> </span>&#123;    <span class="hljs-keyword">protected</span> DrawAPI drawAPI;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Shape</span><span class="hljs-params">(DrawAPI drawAPI)</span> </span>&#123;        <span class="hljs-keyword">this</span>.drawAPI = drawAPI;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">draw</span><span class="hljs-params">()</span></span>;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Circle</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Shape</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> x;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> y;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> radius;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Circle</span><span class="hljs-params">(<span class="hljs-keyword">int</span> x, <span class="hljs-keyword">int</span> y, <span class="hljs-keyword">int</span> radius, DrawAPI drawAPI)</span> </span>&#123;        <span class="hljs-keyword">super</span>(drawAPI);        <span class="hljs-keyword">this</span>.x = x;        <span class="hljs-keyword">this</span>.y = y;        <span class="hljs-keyword">this</span>.radius = radius;    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">draw</span><span class="hljs-params">()</span> </span>&#123;        drawAPI.drawCircle(radius, x, y);    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BridgePatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        Shape redCircle = <span class="hljs-keyword">new</span> Circle(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-keyword">new</span> RedCircle());        Shape blueCircle = <span class="hljs-keyword">new</span> Circle(<span class="hljs-number">1</span>, <span class="hljs-number">2</span>, <span class="hljs-number">3</span>, <span class="hljs-keyword">new</span> BlueCircle());        redCircle.draw();        blueCircle.draw();    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>结构型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>适配器模式</title>
+    <link href="/2021/03/26/%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/03/26/%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>有一个现成可复用的组件，但是与当前系统的架构不兼容。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>将类的接口转换为客户端期望的另一个接口，使得原本由于接口不兼容无法一起工作的类能够一起工作。</li><li>用一个新的接口包装现有的类</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SquarePeg</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">double</span> width;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">SquarePeg</span><span class="hljs-params">(<span class="hljs-keyword">double</span> width)</span> </span>&#123;        <span class="hljs-keyword">this</span>.width = width;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">double</span> <span class="hljs-title">getWidth</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> width;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setWidth</span><span class="hljs-params">(<span class="hljs-keyword">double</span> width)</span> </span>&#123;        <span class="hljs-keyword">this</span>.width = width;    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">RoundHole</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> radius;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">RoundHole</span><span class="hljs-params">(<span class="hljs-keyword">int</span> radius)</span> </span>&#123;        <span class="hljs-keyword">this</span>.radius = radius;        System.out.println(<span class="hljs-string">&quot;RoundHole: max SquarePeg is &quot;</span> + radius * Math.sqrt(<span class="hljs-number">2</span>));    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">int</span> <span class="hljs-title">getRadius</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> radius;    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SquarePegAdapter</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> SquarePeg squarePeg;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">SquarePegAdapter</span><span class="hljs-params">(<span class="hljs-keyword">double</span> width)</span> </span>&#123;        <span class="hljs-keyword">this</span>.squarePeg = <span class="hljs-keyword">new</span> SquarePeg(width);    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">makeFit</span><span class="hljs-params">(RoundHole roundHole)</span> </span>&#123;        <span class="hljs-keyword">double</span> amount = squarePeg.getWidth() - roundHole.getRadius() * Math.sqrt(<span class="hljs-number">2</span>);        System.out.println(<span class="hljs-string">&quot;reducing SquarePeg &quot;</span> + squarePeg.getWidth() + <span class="hljs-string">&quot; by &quot;</span> + ((amount &lt; <span class="hljs-number">0</span>) ? <span class="hljs-number">0</span> : amount) + <span class="hljs-string">&quot; amount&quot;</span>);        <span class="hljs-keyword">if</span> (amount &gt; <span class="hljs-number">0</span>) &#123;            squarePeg.setWidth(squarePeg.getWidth() - amount);            System.out.println(<span class="hljs-string">&quot;Width is now &quot;</span> + squarePeg.getWidth());        &#125;    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">AdapterDemoSquarePeg</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        RoundHole roundHole = <span class="hljs-keyword">new</span> RoundHole(<span class="hljs-number">5</span>);        SquarePegAdapter squarePegAdapter;        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">10</span>; i++) &#123;            squarePegAdapter = <span class="hljs-keyword">new</span> SquarePegAdapter(i);            squarePegAdapter.makeFit(roundHole);        &#125;    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>结构型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>原型模式</title>
     <link href="/2021/03/24/%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F/"/>
     <url>/2021/03/24/%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F/</url>
