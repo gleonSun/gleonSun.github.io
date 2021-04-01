@@ -4,6 +4,33 @@
   
   
   <entry>
+    <title>装饰器模式</title>
+    <link href="/2021/04/01/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/04/01/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>运行时地给对象添加行为或状态，一般我们扩展类时常用继承方式，但随着扩展功能的增多，子类会很膨胀，这就是继承失控。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>动态地给对象添加职责，相对于继承要更灵活</li><li>将具体功能职责划分，通过包装来修饰核心对象</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Shape</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">draw</span><span class="hljs-params">()</span></span>;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Circle</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Shape</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">draw</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Shape: Circle&quot;</span>);    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Rectangle</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Shape</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">draw</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Shape: Rectangle&quot;</span>);    &#125;&#125;<span class="hljs-keyword">abstract</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ShapeDecorator</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Shape</span> </span>&#123;    <span class="hljs-keyword">protected</span> Shape decoratorShape;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">ShapeDecorator</span><span class="hljs-params">(Shape decoratorShape)</span> </span>&#123;        <span class="hljs-keyword">this</span>.decoratorShape = decoratorShape;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">draw</span><span class="hljs-params">()</span> </span>&#123;        decoratorShape.draw();    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BlueShapeDecorator</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">ShapeDecorator</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">BlueShapeDecorator</span><span class="hljs-params">(Shape decoratorShape)</span> </span>&#123;        <span class="hljs-keyword">super</span>(decoratorShape);    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">draw</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">super</span>.draw();        setBlueBorder();    &#125;    <span class="hljs-function"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setBlueBorder</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Border Color: Blue&quot;</span>);    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">DecoratorPatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        Shape circle = <span class="hljs-keyword">new</span> Circle();        circle.draw();        ShapeDecorator blueCircle = <span class="hljs-keyword">new</span> BlueShapeDecorator(<span class="hljs-keyword">new</span> Circle());        blueCircle.draw();    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>结构型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>Spark 动态分配 Executor</title>
     <link href="/2021/03/31/Spark-%E5%8A%A8%E6%80%81%E5%88%86%E9%85%8D-Executor/"/>
     <url>/2021/03/31/Spark-%E5%8A%A8%E6%80%81%E5%88%86%E9%85%8D-Executor/</url>
