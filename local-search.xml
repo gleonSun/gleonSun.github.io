@@ -4,6 +4,35 @@
   
   
   <entry>
+    <title>Spark 任务调度</title>
+    <link href="/2021/04/13/Spark-%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6/"/>
+    <url>/2021/04/13/Spark-%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6/</url>
+    
+    <content type="html"><![CDATA[<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>Spark 调度系统用于将用户提交的任务调度到集群中的不同节点执行，大致可以分为任务调度和资源调度两部分调度流程，本文主要针对任务调度进行分析。</p><p>用户向 Spark 提交一个任务，Spark 看作是一个作业（Job），首先对 Job 进行一系列 RDD 转换，并通过 RDD 之间的依赖关系构建有向无环图（DAG）。然后根据 RDD 依赖的不同将 RDD 划分到不同的阶段（Stage），每个阶段按照分区（Partition）的数量创建多个任务（Task），最后将这些任务提交到集群的各个节点上运行。</p><p>其任务调度主要由 DAGScheduler 和 TaskScheduler 构成。</p><h2 id="工作流程图"><a href="#工作流程图" class="headerlink" title="工作流程图"></a>工作流程图</h2><p><img src="%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B.png"></p><h2 id="DAGScheduler"><a href="#DAGScheduler" class="headerlink" title="DAGScheduler"></a>DAGScheduler</h2><h2 id="TaskScheduler"><a href="#TaskScheduler" class="headerlink" title="TaskScheduler"></a>TaskScheduler</h2><h1 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h1><h2 id="源码流程图"><a href="#源码流程图" class="headerlink" title="源码流程图"></a>源码流程图</h2><p><img src="%E6%BA%90%E7%A0%81%E6%B5%81%E7%A8%8B.png"></p>]]></content>
+    
+    
+    <categories>
+      
+      <category>分布式系统</category>
+      
+      <category>分布式计算</category>
+      
+      <category>Spark</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Spark</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>状态模式</title>
     <link href="/2021/04/13/%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/"/>
     <url>/2021/04/13/%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/</url>
@@ -253,7 +282,7 @@
     <link href="/2021/04/02/Spark-RDD/"/>
     <url>/2021/04/02/Spark-RDD/</url>
     
-    <content type="html"><![CDATA[<h1 id="Spark-RDD"><a href="#Spark-RDD" class="headerlink" title="Spark RDD"></a>Spark RDD</h1><p>弹性分布式数据集 （ Resilient Distrbuted Dataset），本质是一种分布式的内存抽象，表示一个只读的数据分区（Partition）集合。</p><p>RDD 本身是不存储数据的，且只有在调用例如 collect 时才真正执行逻辑。RDD 是不可变的，只能产生新的 RDD，其内部封装了计算逻辑。</p><h2 id="弹性"><a href="#弹性" class="headerlink" title="弹性"></a>弹性</h2><ul><li>在内存和磁盘间存储方式的自动切换，数据优先在内存缓冲，达到阈值持久化到磁盘</li><li>基于血缘关系（Lineage）的容错机制，只需要重新计算丢失的分区数据</li></ul><h2 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h2><ul><li><p><code>A list of partitions</code></p><p>  分区列表。RDD 包含多个 partition，每个 partition 由一个 Task 处理，可以在创建 RDD 时指定分片个数。</p></li><li><p><code>A function for computing each split</code></p><p>  每个分区都有个计算函数。以分片为单位并行计算。</p></li><li><p><code>A list of dependencies on other RDDs</code></p><p>  依赖于其他 RDD 的列表。RDD 每次转换都会生成新的 RDD，形成前后的依赖关系，分为窄依赖和宽依赖，当有分区数据丢失时，Spark 会通过依赖关系重新计算，从而计算出丢失的数据，而不是对 RDD 所有分区重新计算。</p></li><li><p><code>Optionally, a Partitioner for key-value RDDs</code></p><p>  K-V 类型的 RDD 分区器。</p></li><li><p><code>Optionally, a list of preferred locations to compute each split on</code></p><p>  每个分区的优先位置列表。该列表会存储每个 partition 的优先位置，移动代码而非移动数据，将任务调度到数据文件所在的具体位置以提高处理速度。</p></li></ul><h2 id="转换"><a href="#转换" class="headerlink" title="转换"></a>转换</h2><p>RDD 计算的时候通过 compute 函数得到每个分区的数据，若 RDD 是通过已有的文件系统构建的，则读取指定文件系统中的数据；若 RDD 是通过其他 RDD 转换的，则执行转换逻辑，将其他 RDD 数据进行转换。其操作算子主要包括两类：</p><ul><li><p><code>transformation</code>，转换 RDD，构建依赖关系</p></li><li><p><code>action</code>，触发 RDD 计算，得到计算结果或将 RDD 保存到文件系统中，例：show、count、collect、saveAsTextFile等</p></li></ul><p>RDD 是惰性的，只有在 action 阶段才会真正执行 RDD 计算。</p><h2 id="任务执行及划分"><a href="#任务执行及划分" class="headerlink" title="任务执行及划分"></a>任务执行及划分</h2><ul><li><p>基于 RDD 的计算任务</p><p>  从物理存储（如HDFS）中加载数据，将数据传入由一组确定性操作构成的有向无环图（DAG），然后写回去。</p></li><li><p>任务执行关系</p><ul><li><p>文件根据 InputFormat 被划分为若干个 InputSplit，InputSplit 与 Task 一一对应</p></li><li><p>每个 Task 执行的结果来自于 RDD 的一个 partition</p></li><li><p>每个 Executor 由若干 core（虚拟的，非物理 CPU 核） 组成，每个 Executor 的 core 一次只能执行一个 Task</p></li><li><p>Task 执行的并发度 = Executor 数 * 每个 Executor 核数</p></li></ul></li></ul><blockquote><ul><li>RDD 中用到的对象都必须是可序列化的，代码和引用对象会序列化后复制到多台机器的 RDD 上，否则会引发序列化方面的异常，可继承 Serializable 或使用 Kryo 序列化</li><li>RDD 不支持嵌套，会导致空指针</li></ul></blockquote><h2 id="依赖关系"><a href="#依赖关系" class="headerlink" title="依赖关系"></a>依赖关系</h2><p>新的 RDD 包含了如何从其他 RDD 衍生所必需的信息，这些信息构成了 RDD 之间的依赖关系。</p><ul><li><p>窄依赖</p><p>  每个父 RDD 的一个 partition 最多被子 RDD 的一个 partition 使用，例如：map、filter、union等，是一对一或多对一的关系。转换操作可以通过类似管道（pipeline）的方式执行。</p></li><li><p>宽依赖</p><ul><li><p>一个父 RDD 的 partition 同时被多个子 RDD 的 partition 使用，例如：groupByKey、reduceByKey、sortByKey等，是一对多的关系。数据需要在不同节点之间进行 shuffle 传输。</p></li><li><p>遇到一个宽依赖划分一个 stage</p></li></ul></li></ul><h2 id="自定义-RDD"><a href="#自定义-RDD" class="headerlink" title="自定义 RDD"></a>自定义 RDD</h2><p>继承 RDD 并实现以下函数，一般来说前三个比较重要。</p><ul><li><p>compute</p><p>  对 RDD 的分区进行计算，收集每个分区的结果</p></li><li><p>getPartitions</p><p>  自定义分区器，获取当前 RDD 的所有分区</p></li><li><p>getPreferredLocations</p><p>  本地化计算，调度任务至最近节点以提高计算效率</p></li><li><p>getDependencies</p><p>  获取当前 RDD 的所有依赖</p></li></ul>]]></content>
+    <content type="html"><![CDATA[<h1 id="Spark-RDD"><a href="#Spark-RDD" class="headerlink" title="Spark RDD"></a>Spark RDD</h1><p>弹性分布式数据集 （ Resilient Distrbuted Dataset），本质是一种分布式的内存抽象，表示一个只读的数据分区（Partition）集合。</p><p>RDD 本身是不存储数据的，且只有在调用例如 collect 时才真正执行逻辑。RDD 是不可变的，只能产生新的 RDD，其内部封装了计算逻辑。</p><h2 id="弹性"><a href="#弹性" class="headerlink" title="弹性"></a>弹性</h2><ul><li>在内存和磁盘间存储方式的自动切换，数据优先在内存缓冲，达到阈值持久化到磁盘</li><li>基于血缘关系（Lineage）的容错机制，只需要重新计算丢失的分区数据</li></ul><h2 id="特性"><a href="#特性" class="headerlink" title="特性"></a>特性</h2><ul><li><p><code>A list of partitions</code></p><p>  分区列表。RDD 包含多个 partition，每个 partition 由一个 Task 处理，可以在创建 RDD 时指定分片个数。</p></li><li><p><code>A function for computing each split</code></p><p>  每个分区都有个计算函数。以分片为单位并行计算。</p></li><li><p><code>A list of dependencies on other RDDs</code></p><p>  依赖于其他 RDD 的列表。RDD 每次转换都会生成新的 RDD，形成前后的依赖关系，分为窄依赖和宽依赖，当有分区数据丢失时，Spark 会通过依赖关系重新计算，从而计算出丢失的数据，而不是对 RDD 所有分区重新计算。</p></li><li><p><code>Optionally, a Partitioner for key-value RDDs</code></p><p>  K-V 类型的 RDD 分区器。</p></li><li><p><code>Optionally, a list of preferred locations to compute each split on</code></p><p>  每个分区的优先位置列表。该列表会存储每个 partition 的优先位置，移动代码而非移动数据，将任务调度到数据文件所在的具体位置以提高处理速度。</p></li></ul><h2 id="转换"><a href="#转换" class="headerlink" title="转换"></a>转换</h2><p>RDD 计算的时候通过 compute 函数得到每个分区的数据，若 RDD 是通过已有的文件系统构建的，则读取指定文件系统中的数据；若 RDD 是通过其他 RDD 转换的，则执行转换逻辑，将其他 RDD 数据进行转换。其操作算子主要包括两类：</p><ul><li><p><code>transformation</code>，转换 RDD，构建依赖关系</p></li><li><p><code>action</code>，触发 RDD 计算，得到计算结果或将 RDD 保存到文件系统中，例：show、count、collect、saveAsTextFile等</p></li></ul><p>RDD 是惰性的，只有在 action 阶段才会真正执行 RDD 计算。</p><h2 id="任务执行及划分"><a href="#任务执行及划分" class="headerlink" title="任务执行及划分"></a>任务执行及划分</h2><ul><li><p>基于 RDD 的计算任务</p><p>  从物理存储（如HDFS）中加载数据，将数据传入由一组确定性操作构成的有向无环图（DAG），然后写回去。</p></li><li><p>任务执行关系</p><ul><li><p>文件根据 InputFormat 被划分为若干个 InputSplit，InputSplit 与 Task 一一对应</p></li><li><p>每个 Task 执行的结果来自于 RDD 的一个 partition</p></li><li><p>每个 Executor 由若干 core（虚拟的，非物理 CPU 核） 组成，每个 Executor 的 core 一次只能执行一个 Task</p></li><li><p>Task 执行的并发度 = Executor 数 * 每个 Executor 核数</p></li></ul></li></ul><blockquote><ul><li>RDD 中用到的对象都必须是可序列化的，代码和引用对象会序列化后复制到多台机器的 RDD 上，否则会引发序列化方面的异常，可继承 Serializable 或使用 Kryo 序列化</li><li>RDD 不支持嵌套，会导致空指针</li></ul></blockquote><h2 id="依赖关系"><a href="#依赖关系" class="headerlink" title="依赖关系"></a>依赖关系</h2><p>新的 RDD 包含了如何从其他 RDD 衍生所必需的信息，这些信息构成了 RDD 之间的依赖关系。</p><ul><li><p>窄依赖</p><p>  每个父 RDD 的一个 partition 最多被子 RDD 的一个 partition 使用，例如：map、filter、union等，是一对一或多对一的关系。转换操作可以通过类似管道（pipeline）的方式执行。</p></li><li><p>宽依赖</p><ul><li><p>一个父 RDD 的 partition 同时被多个子 RDD 的 partition 使用，例如：groupByKey、reduceByKey、sortByKey等，是一对多的关系。数据需要在不同节点之间进行 shuffle 传输。</p></li><li><p>遇到一个宽依赖划分一个 stage</p></li></ul></li></ul><h2 id="自定义-RDD"><a href="#自定义-RDD" class="headerlink" title="自定义 RDD"></a>自定义 RDD</h2><p>继承 RDD 并实现以下函数，一般来说前三个比较重要。</p><ul><li><p>compute</p><p>  对 RDD 的分区进行计算，收集每个分区的结果</p></li><li><p>getPartitions</p><p>  自定义分区器，获取当前 RDD 的所有分区</p></li><li><p>getPreferredLocations</p><p>  本地化计算，调度任务至最近节点以提高计算效率</p></li></ul>]]></content>
     
     
     <categories>
