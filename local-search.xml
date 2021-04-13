@@ -4,6 +4,114 @@
   
   
   <entry>
+    <title>状态模式</title>
+    <link href="/2021/04/13/%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/04/13/%E7%8A%B6%E6%80%81%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>对象的行为依赖于它的状态，并且可以根据它的状态改变从而改变它的行为。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>允许对象在其内部更改时更改其行为</li><li>可以让多个环境对象共享一个状态对象，从而减少系统中对象的个数</li></ol><blockquote><p>状态模式对“开闭原则”的支持不是很好，切换状态时会修改相应类的源码</p></blockquote><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">State</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">doAction</span><span class="hljs-params">(Context context)</span></span>;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Context</span> </span>&#123;    <span class="hljs-keyword">private</span> State state;    <span class="hljs-function"><span class="hljs-keyword">public</span> State <span class="hljs-title">getState</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> state;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setState</span><span class="hljs-params">(State state)</span> </span>&#123;        <span class="hljs-keyword">this</span>.state = state;    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">StartState</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">State</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">doAction</span><span class="hljs-params">(Context context)</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Current state is StartState&quot;</span>);        context.setState(<span class="hljs-keyword">this</span>);    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Start State&quot;</span>;    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">StopState</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">State</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">doAction</span><span class="hljs-params">(Context context)</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Current state is StopState&quot;</span>);        context.setState(<span class="hljs-keyword">this</span>);    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">toString</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;Stop State&quot;</span>;    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">StatePatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        Context context = <span class="hljs-keyword">new</span> Context();        State startState = <span class="hljs-keyword">new</span> StartState();        startState.doAction(context);        System.out.println(context.getState());        State stopState = <span class="hljs-keyword">new</span> StopState();        stopState.doAction(context);        System.out.println(context.getState());    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>行为型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>策略模式</title>
+    <link href="/2021/04/13/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/04/13/%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>在有多种算法相似的情况下，使用 if … else 所带来的复杂和难以维护。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>定义一系列算法，封装每个算法，并使它们可以相互替换</li><li>捕获接口中的抽象，将实现细节隐藏在派生类中</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Strategy</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">doOperation</span><span class="hljs-params">(<span class="hljs-keyword">int</span> num1, <span class="hljs-keyword">int</span> num2)</span></span>;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">AddOperation</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Strategy</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">int</span> <span class="hljs-title">doOperation</span><span class="hljs-params">(<span class="hljs-keyword">int</span> num1, <span class="hljs-keyword">int</span> num2)</span> </span>&#123;        <span class="hljs-keyword">return</span> num1 + num2;    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Subtract</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Strategy</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">int</span> <span class="hljs-title">doOperation</span><span class="hljs-params">(<span class="hljs-keyword">int</span> num1, <span class="hljs-keyword">int</span> num2)</span> </span>&#123;        <span class="hljs-keyword">return</span> num1 - num2;    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Multiply</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Strategy</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">int</span> <span class="hljs-title">doOperation</span><span class="hljs-params">(<span class="hljs-keyword">int</span> num1, <span class="hljs-keyword">int</span> num2)</span> </span>&#123;        <span class="hljs-keyword">return</span> num1 * num2;    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Context</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Strategy strategy;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Context</span><span class="hljs-params">(Strategy strategy)</span> </span>&#123;        <span class="hljs-keyword">this</span>.strategy = strategy;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">int</span> <span class="hljs-title">executeStrategy</span><span class="hljs-params">(<span class="hljs-keyword">int</span> num1, <span class="hljs-keyword">int</span> num2)</span> </span>&#123;        <span class="hljs-keyword">return</span> strategy.doOperation(num1, num2);    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">StrategyPatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        Context context = <span class="hljs-keyword">new</span> Context(<span class="hljs-keyword">new</span> AddOperation());        System.out.println(<span class="hljs-string">&quot;10 + 5 = &quot;</span> + context.executeStrategy(<span class="hljs-number">10</span>, <span class="hljs-number">5</span>));        context = <span class="hljs-keyword">new</span> Context(<span class="hljs-keyword">new</span> Subtract());        System.out.println(<span class="hljs-string">&quot;10 - 5 = &quot;</span> + context.executeStrategy(<span class="hljs-number">10</span>, <span class="hljs-number">5</span>));        context = <span class="hljs-keyword">new</span> Context(<span class="hljs-keyword">new</span> Multiply());        System.out.println(<span class="hljs-string">&quot;10 * 5 = &quot;</span> + context.executeStrategy(<span class="hljs-number">10</span>, <span class="hljs-number">5</span>));    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>行为型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>模板模式</title>
+    <link href="/2021/04/13/%E6%A8%A1%E6%9D%BF%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/04/13/%E6%A8%A1%E6%9D%BF%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>两个不同的组件有很多相似之处，但没有复用公共接口或实现，如果相同的地方需要更改，那么需要付出重复的努力。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>定义一个操作中算法的骨架，而将一些步骤推迟到子类</li><li>重要复杂的方法可以考虑作为模板方法，行为由父类控制，子类实现</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-keyword">abstract</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Game</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">initialize</span><span class="hljs-params">()</span></span>;    <span class="hljs-function"><span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">startPlay</span><span class="hljs-params">()</span></span>;    <span class="hljs-function"><span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">endPlay</span><span class="hljs-params">()</span></span>;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">void</span> <span class="hljs-title">play</span><span class="hljs-params">()</span> </span>&#123;        initialize();        startPlay();        endPlay();        System.out.println();    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Cricket</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Game</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">initialize</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Initial Cricket Game.&quot;</span>);    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">startPlay</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Start play Cricket Game.&quot;</span>);    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">endPlay</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Cricket Game end, bye.&quot;</span>);    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Football</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Game</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">initialize</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Initial Football Game.&quot;</span>);    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">startPlay</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Start play Football Game.&quot;</span>);    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">endPlay</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Football Game end, bye.&quot;</span>);    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TemplatePatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        Game game = <span class="hljs-keyword">new</span> Cricket();        game.play();        game = <span class="hljs-keyword">new</span> Football();        game.play();    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>行为型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>观察者模式</title>
+    <link href="/2021/04/13/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/04/13/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>当一个对象的状态发生改变时，所有依赖于它的对象都将得到通知并自动被更新。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>定义对象之间的一对多依赖关系，以便当一个对象更改状态时，会自动通知并更新其所有从属对象</li><li>观察者和被观察者是解耦的，建立一套触发机制，避免循环引用，顺序执行一般采用异步的方式</li><li>有点类似 Model-View-Controller 中的 View 部分</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">AlarmListener</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">alarm</span><span class="hljs-params">()</span></span>;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SensorSystem</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Vector&lt;AlarmListener&gt; listeners = <span class="hljs-keyword">new</span> Vector&lt;&gt;();    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">register</span><span class="hljs-params">(AlarmListener alarmListener)</span> </span>&#123;        listeners.addElement(alarmListener);    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">soundAlarm</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">for</span> (Enumeration&lt;AlarmListener&gt; e = listeners.elements(); e.hasMoreElements(); ) &#123;            e.nextElement().alarm();        &#125;    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Lighting</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">AlarmListener</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">alarm</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;lights up&quot;</span>);    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Gates</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">AlarmListener</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">alarm</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;gates close&quot;</span>);    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CheckList</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">byTheNumbers</span><span class="hljs-params">()</span> </span>&#123;        localize();        isolate();        identify();    &#125;    <span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title">localize</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;   establish a perimeter&quot;</span>);    &#125;    <span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title">isolate</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;   isolate the grid&quot;</span>);    &#125;    <span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title">identify</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;   identify the source&quot;</span>);    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Surveillance</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">CheckList</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">AlarmListener</span> </span>&#123;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">alarm</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Surveillance - by the numbers:&quot;</span>);        byTheNumbers();    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title">isolate</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;   train the cameras&quot;</span>);    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ObserverPatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        SensorSystem sensorSystem = <span class="hljs-keyword">new</span> SensorSystem();        sensorSystem.register(<span class="hljs-keyword">new</span> Lighting());        sensorSystem.register(<span class="hljs-keyword">new</span> Gates());        sensorSystem.register(<span class="hljs-keyword">new</span> Surveillance());        sensorSystem.soundAlarm();    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>行为型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>迭代器模式</title>
     <link href="/2021/04/09/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F/"/>
     <url>/2021/04/09/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F/</url>
@@ -11,6 +119,20 @@
     <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>对截然不同的数据结构的遍历进行“抽象”，以便能够定义与每种结构透明交互的算法。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>提供一种顺序访问聚合对象的元素而不公开基础表示形式的方法</li><li>将元素的遍历交给迭代器而不是聚合对象</li><li>提供多种遍历方式，为不同的聚合结构提供一个统一的接口</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Iterator</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">boolean</span> <span class="hljs-title">hasNext</span><span class="hljs-params">()</span></span>;    <span class="hljs-function">Object <span class="hljs-title">next</span><span class="hljs-params">()</span></span>;&#125;<span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Container</span> </span>&#123;    <span class="hljs-function">Iterator <span class="hljs-title">getIterator</span><span class="hljs-params">()</span></span>;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NameRepository</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Container</span> </span>&#123;    <span class="hljs-keyword">public</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">static</span> String[] NAMES = &#123;<span class="hljs-string">&quot;Robert&quot;</span>, <span class="hljs-string">&quot;John&quot;</span>, <span class="hljs-string">&quot;Julie&quot;</span>, <span class="hljs-string">&quot;Lora&quot;</span>&#125;;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> Iterator <span class="hljs-title">getIterator</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> NamesIterator();    &#125;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">NamesIterator</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Iterator</span> </span>&#123;        <span class="hljs-keyword">private</span> <span class="hljs-keyword">int</span> index;        <span class="hljs-meta">@Override</span>        <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">hasNext</span><span class="hljs-params">()</span> </span>&#123;            <span class="hljs-keyword">return</span> index &lt; NAMES.length;        &#125;        <span class="hljs-meta">@Override</span>        <span class="hljs-function"><span class="hljs-keyword">public</span> Object <span class="hljs-title">next</span><span class="hljs-params">()</span> </span>&#123;            <span class="hljs-keyword">if</span> (hasNext()) &#123;                <span class="hljs-keyword">return</span> NAMES[index++];            &#125;            <span class="hljs-keyword">return</span> <span class="hljs-keyword">null</span>;        &#125;    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">IteratorPatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        <span class="hljs-keyword">final</span> NameRepository nameRepository = <span class="hljs-keyword">new</span> NameRepository();        <span class="hljs-keyword">final</span> Iterator iterator = nameRepository.getIterator();        <span class="hljs-keyword">while</span> (iterator.hasNext()) &#123;            <span class="hljs-keyword">final</span> Object o = iterator.next();            System.out.println(<span class="hljs-string">&quot;name: &quot;</span> + o);        &#125;    &#125;&#125;</code></pre>]]></content>
     
     
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>行为型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
     
   </entry>
   
