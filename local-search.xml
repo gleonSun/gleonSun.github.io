@@ -4,6 +4,114 @@
   
   
   <entry>
+    <title>中介模式</title>
+    <link href="/2021/04/15/%E4%B8%AD%E4%BB%8B%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/04/15/%E4%B8%AD%E4%BB%8B%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>对象与对象之间存在大量的关联关系，系统的结构很复杂，如果一个对象发生改变，也需要跟踪与之相关联的对象，并做出相应的处理。即多个类相互耦合，形成了网状结构。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><p>用一个中介对象来封装一系列的对象交互，使各对象不需要显示地相互引用，从而使其耦合松散，而且可以独立地改变它们之间的交互。</p><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-comment">// 中介者类</span><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ChatRoom</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">showMessage</span><span class="hljs-params">(User user, String message)</span> </span>&#123;        System.out.println(<span class="hljs-keyword">new</span> Date() + <span class="hljs-string">&quot; [&quot;</span> + user.getName() + <span class="hljs-string">&quot;] : &quot;</span> + message);    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">User</span> </span>&#123;    <span class="hljs-keyword">private</span> String name;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">User</span><span class="hljs-params">(String name)</span> </span>&#123;        <span class="hljs-keyword">this</span>.name = name;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">getName</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> name;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setName</span><span class="hljs-params">(String name)</span> </span>&#123;        <span class="hljs-keyword">this</span>.name = name;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">sendMessage</span><span class="hljs-params">(String message)</span> </span>&#123;        ChatRoom.showMessage(<span class="hljs-keyword">this</span>, message);    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MediatorPatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        User robert = <span class="hljs-keyword">new</span> User(<span class="hljs-string">&quot;Robert&quot;</span>);        User john = <span class="hljs-keyword">new</span> User(<span class="hljs-string">&quot;John&quot;</span>);        robert.sendMessage(<span class="hljs-string">&quot;Hi, John.&quot;</span>);        john.sendMessage(<span class="hljs-string">&quot;Hi, Robert.&quot;</span>);    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>行为型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>解释器模式</title>
+    <link href="/2021/04/15/%E8%A7%A3%E9%87%8A%E5%99%A8%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/04/15/%E8%A7%A3%E9%87%8A%E5%99%A8%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>一类问题在定义良好且理解良好的领域中重复出现，如果领域是用“语言”来描述的，那么可以考虑用解释器模式。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>给定一种语言，定义其语法的表示形式，以及使用该标识形式解释该语言中的句子的解释器</li><li>构建语法树，定义终结符与非终结符</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-comment">// 表达式接口</span><span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Expression</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">boolean</span> <span class="hljs-title">interpret</span><span class="hljs-params">(String context)</span></span>;&#125;<span class="hljs-comment">// 实现了表达式接口的实体类</span><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TerminalExpression</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Expression</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> String data;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">TerminalExpression</span><span class="hljs-params">(String data)</span> </span>&#123;        <span class="hljs-keyword">this</span>.data = data;    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">interpret</span><span class="hljs-params">(String context)</span> </span>&#123;        <span class="hljs-keyword">return</span> context.contains(data);    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">AndExpression</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Expression</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Expression expr1;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Expression expr2;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">AndExpression</span><span class="hljs-params">(Expression expr1, Expression expr2)</span> </span>&#123;        <span class="hljs-keyword">this</span>.expr1 = expr1;        <span class="hljs-keyword">this</span>.expr2 = expr2;    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">interpret</span><span class="hljs-params">(String context)</span> </span>&#123;        <span class="hljs-keyword">return</span> expr1.interpret(context) &amp;&amp; expr2.interpret(context);    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">OrExpression</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Expression</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Expression expr1;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Expression expr2;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">OrExpression</span><span class="hljs-params">(Expression expr1, Expression expr2)</span> </span>&#123;        <span class="hljs-keyword">this</span>.expr1 = expr1;        <span class="hljs-keyword">this</span>.expr2 = expr2;    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">interpret</span><span class="hljs-params">(String context)</span> </span>&#123;        <span class="hljs-keyword">return</span> expr1.interpret(context) || expr2.interpret(context);    &#125;&#125;<span class="hljs-comment">// 使用 Expression 类创建规则，并解析它们</span><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">InterpreterPatternDemo</span> </span>&#123;    <span class="hljs-comment">// 规则：robert 和 john 是男性</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Expression <span class="hljs-title">getMaleExpression</span><span class="hljs-params">()</span> </span>&#123;        Expression robert = <span class="hljs-keyword">new</span> TerminalExpression(<span class="hljs-string">&quot;Robert&quot;</span>);        Expression john = <span class="hljs-keyword">new</span> TerminalExpression(<span class="hljs-string">&quot;John&quot;</span>);        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> OrExpression(robert, john);    &#125;    <span class="hljs-comment">// 规则：Julie 是一个已婚的女性</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> Expression <span class="hljs-title">getMarriedWomanExpression</span><span class="hljs-params">()</span> </span>&#123;        Expression julie = <span class="hljs-keyword">new</span> TerminalExpression(<span class="hljs-string">&quot;Julie&quot;</span>);        Expression married = <span class="hljs-keyword">new</span> TerminalExpression(<span class="hljs-string">&quot;Married&quot;</span>);        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> AndExpression(julie, married);    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        Expression isMale = getMaleExpression();        Expression isMarriedWoman = getMarriedWomanExpression();        System.out.println(<span class="hljs-string">&quot;John is male? &quot;</span> + isMale.interpret(<span class="hljs-string">&quot;John&quot;</span>));        System.out.println(<span class="hljs-string">&quot;Julie is a married women? &quot;</span> + isMarriedWoman.interpret(<span class="hljs-string">&quot;Married Julie&quot;</span>));    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>行为型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>命令模式</title>
+    <link href="/2021/04/15/%E5%91%BD%E4%BB%A4%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/04/15/%E5%91%BD%E4%BB%A4%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>需要向对象发出请求，而不知道所请求的操作或请求的接收者任何信息。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><ol><li>将请求封装为对象，从而允许使用不同的请求参数对客户端参数化</li><li>通过调用者调用接收者执行命令，顺序：调用者-&gt;命令-&gt;接收者</li></ol><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-comment">// 命令接口</span><span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Order</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">execute</span><span class="hljs-params">()</span></span>;&#125;<span class="hljs-comment">// 请求类</span><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Stock</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> String NAME = <span class="hljs-string">&quot;ABC&quot;</span>;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> <span class="hljs-keyword">int</span> QUANTITY = <span class="hljs-number">10</span>;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">buy</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Stock [ Name: &quot;</span> + NAME + <span class="hljs-string">&quot;, QUANTITY: &quot;</span> + QUANTITY + <span class="hljs-string">&quot; ] bought &quot;</span>);    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">sell</span><span class="hljs-params">()</span> </span>&#123;        System.out.println(<span class="hljs-string">&quot;Stock [ Name: &quot;</span> + NAME + <span class="hljs-string">&quot;, QUANTITY: &quot;</span> + QUANTITY + <span class="hljs-string">&quot; ] sold&quot;</span>);    &#125;&#125;<span class="hljs-comment">// 实现了请求类的实体类</span><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">BuyStock</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Order</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Stock abcStock;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">BuyStock</span><span class="hljs-params">(Stock abcStock)</span> </span>&#123;        <span class="hljs-keyword">this</span>.abcStock = abcStock;    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">execute</span><span class="hljs-params">()</span> </span>&#123;        abcStock.buy();    &#125;&#125;<span class="hljs-comment">// 实现了请求类的实体类</span><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">SellStock</span> <span class="hljs-keyword">implements</span> <span class="hljs-title">Order</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> Stock abcStock;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">SellStock</span><span class="hljs-params">(Stock abcStock)</span> </span>&#123;        <span class="hljs-keyword">this</span>.abcStock = abcStock;    &#125;    <span class="hljs-meta">@Override</span>    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">execute</span><span class="hljs-params">()</span> </span>&#123;        abcStock.sell();    &#125;&#125;<span class="hljs-comment">// 命令调用类</span><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Broker</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> List&lt;Order&gt; orderList = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;();    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">takeOrder</span><span class="hljs-params">(Order order)</span> </span>&#123;        orderList.add(order);    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">placeOrders</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">for</span> (Order order : orderList) &#123;            order.execute();        &#125;        orderList.clear();    &#125;&#125;<span class="hljs-comment">// 使用 Broker 来接受命令并执行命令</span><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CommandPatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        Stock stock = <span class="hljs-keyword">new</span> Stock();        BuyStock buyStock = <span class="hljs-keyword">new</span> BuyStock(stock);        SellStock sellStock = <span class="hljs-keyword">new</span> SellStock(stock);        Broker broker = <span class="hljs-keyword">new</span> Broker();        broker.takeOrder(buyStock);        broker.takeOrder(sellStock);        broker.placeOrders();    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>行为型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>备忘录模式</title>
+    <link href="/2021/04/15/%E5%A4%87%E5%BF%98%E5%BD%95%E6%A8%A1%E5%BC%8F/"/>
+    <url>/2021/04/15/%E5%A4%87%E5%BF%98%E5%BD%95%E6%A8%A1%E5%BC%8F/</url>
+    
+    <content type="html"><![CDATA[<h1 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h1><p>需要将对象回复到其以前的状态（例如“撤销”或“回滚”操作）。</p><h1 id="目的"><a href="#目的" class="headerlink" title="目的"></a>目的</h1><p>在不破坏封装的情况下，捕获对象的内部状态并在该对象之外保存这个状态，以便在后面可以将对象返回到这个状态。</p><h1 id="代码实例"><a href="#代码实例" class="headerlink" title="代码实例"></a>代码实例</h1><pre><code class="hljs java"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Memento</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> String state;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Memento</span><span class="hljs-params">(String state)</span> </span>&#123;        <span class="hljs-keyword">this</span>.state = state;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">getState</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> state;    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">Originator</span> </span>&#123;    <span class="hljs-keyword">private</span> String state;    <span class="hljs-function"><span class="hljs-keyword">public</span> String <span class="hljs-title">getState</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> state;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setState</span><span class="hljs-params">(String state)</span> </span>&#123;        <span class="hljs-keyword">this</span>.state = state;    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> Memento <span class="hljs-title">saveStateToMemento</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Memento(state);    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">getStateFromMemento</span><span class="hljs-params">(Memento memento)</span> </span>&#123;        state = memento.getState();    &#125;&#125;<span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">CareTaker</span> </span>&#123;    <span class="hljs-keyword">private</span> <span class="hljs-keyword">final</span> List&lt;Memento&gt; mementoList = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;();    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">add</span><span class="hljs-params">(Memento state)</span> </span>&#123;        mementoList.add(state);    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> Memento <span class="hljs-title">get</span><span class="hljs-params">(<span class="hljs-keyword">int</span> index)</span> </span>&#123;        <span class="hljs-keyword">return</span> mementoList.get(index);    &#125;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">int</span> <span class="hljs-title">getLen</span><span class="hljs-params">()</span> </span>&#123;        <span class="hljs-keyword">return</span> mementoList.size();    &#125;&#125;<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">MementoPatternDemo</span> </span>&#123;    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title">main</span><span class="hljs-params">(String[] args)</span> </span>&#123;        Originator originator = <span class="hljs-keyword">new</span> Originator();        CareTaker careTaker = <span class="hljs-keyword">new</span> CareTaker();        originator.setState(<span class="hljs-string">&quot;State #1&quot;</span>);        originator.setState(<span class="hljs-string">&quot;State #2&quot;</span>);        careTaker.add(originator.saveStateToMemento());        originator.setState(<span class="hljs-string">&quot;State #3&quot;</span>);        careTaker.add(originator.saveStateToMemento());        originator.setState(<span class="hljs-string">&quot;State #4&quot;</span>);        System.out.println(<span class="hljs-string">&quot;Current State: &quot;</span> + originator.getState());        <span class="hljs-keyword">int</span> len = careTaker.getLen();        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; len; i++) &#123;            originator.getStateFromMemento(careTaker.get(i));            System.out.println(i + <span class="hljs-string">&quot; State: &quot;</span> + originator.getState());        &#125;    &#125;&#125;</code></pre>]]></content>
+    
+    
+    <categories>
+      
+      <category>设计模式</category>
+      
+      <category>行为型</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>设计模式</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>访问者模式</title>
     <link href="/2021/04/15/%E8%AE%BF%E9%97%AE%E8%80%85%E6%A8%A1%E5%BC%8F/"/>
     <url>/2021/04/15/%E8%AE%BF%E9%97%AE%E8%80%85%E6%A8%A1%E5%BC%8F/</url>
