@@ -1,0 +1,365 @@
+<!DOCTYPE html><html lang="zh-CN" data-default-color-scheme="&#34;auto&#34;"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/img/apple-touch-icon.png"><link rel="icon" href="/img/favicon.ico"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta name="theme-color" content="#2f4154"><meta name="description" content=""><meta name="author" content="Guoliang"><meta name="keywords" content=""><title>Solr BlockCache - Guoliang&#39;s Blog</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css"><link rel="stylesheet" href="/lib/hint/hint.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/a11y-dark.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css"><link rel="stylesheet" href="/css/main.css"><script id="fluid-configs">var Fluid=window.Fluid||{},CONFIG={hostname:"example.com",root:"/",version:"1.8.10",typing:{enable:!0,typeSpeed:80,cursorChar:"乄",loop:!1},anchorjs:{enable:!0,element:"h1,h2,h3,h4,h5,h6",placement:"right",visible:"always",icon:"❡"},progressbar:{enable:!0,height_px:3,color:"#29d",options:{showSpinner:!1,trickleSpeed:100}},copy_btn:!0,image_zoom:{enable:!0},toc:{enable:!0,headingSelector:"h1,h2,h3,h4,h5,h6",collapseDepth:0},lazyload:{enable:!0,loading_img:"/img/loading.gif",onlypost:!1,offset_factor:2},web_analytics:{enable:!0,baidu:null,google:null,gtag:null,tencent:{sid:null,cid:null},woyaola:null,cnzz:null,leancloud:{app_id:"gffo4y4h3e1D9tHT2ADcTxtp-gzGzoHsz",app_key:"EaplHXnXAqIYs5wCxGMVB4l4",server_url:"https://gffo4y4h.lc-cn-n1-shared.com"}}}</script><script src="/js/utils.js"></script><script src="/js/color-schema.js"></script><meta name="generator" content="Hexo 5.4.2"></head><body><header style="height:70vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"><a class="navbar-brand" href="/">&nbsp;<strong>步尽白</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="iconfont icon-home-fill"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="iconfont icon-archive-fill"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="iconfont icon-category-fill"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="iconfont icon-tags-fill"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="iconfont icon-user-fill"></i> 关于</a></li><li class="nav-item" id="search-btn"><a class="nav-link" target="_self" data-toggle="modal" data-target="#modalSearch">&nbsp;<i class="iconfont icon-search"></i>&nbsp;</a></li><li class="nav-item" id="color-toggle-btn"><a class="nav-link" target="_self">&nbsp;<i class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a></li></ul></div></div></nav><div class="banner" id="banner" parallax="true" style="background:url(/img/pingan.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask flex-center" style="background-color:rgba(0,0,0,.3)"><div class="page-header text-center fade-in-up"><span class="h2" id="subtitle" title="Solr BlockCache"></span><div class="mt-3"><span class="post-meta mr-2"><i class="iconfont icon-author" aria-hidden="true"></i> Guoliang </span><span class="post-meta"><i class="iconfont icon-date-fill" aria-hidden="true"></i> <time datetime="2021-04-19 15:40" pubdate>2021年4月19日 下午</time></span></div><div class="mt-1"><span class="post-meta mr-2"><i class="iconfont icon-chart"></i> 4k 字 </span><span class="post-meta mr-2"><i class="iconfont icon-clock-fill"></i> 28 分钟 </span><span id="leancloud-page-views-container" class="post-meta" style="display:none"><i class="iconfont icon-eye" aria-hidden="true"></i> <span id="leancloud-page-views"></span> 次</span></div></div></div></div></div></header><main><div class="container-fluid nopadding-x"><div class="row nomargin-x"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-x-md"><div class="container nopadding-x-md" id="board-ctn"><div class="py-5" id="board"><article class="post-content mx-auto"><h1 style="display:none">Solr BlockCache</h1><p class="note note-info">本文最后更新于：2021年4月20日 下午</p><div class="markdown-body"><h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>Solr 中为了加速索引在 HDFS 上的读写，增加了缓存，相关代码均位于 org.apache.solr.store.blockcache 包中。</p><h1 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h1><p>本篇源码基于 lucene-solr-8.5.2。</p><h2 id="初始化"><a href="#初始化" class="headerlink" title="初始化"></a>初始化</h2><p>初始化的过程位于 HdfsDirectoryFactory 的 create 方法中，启用 BlockCache 需要配置对应参数，可参考 <a target="_blank" rel="noopener" href="https://solr.apache.org/guide/7_2/running-solr-on-hdfs.html">Running Solr on HDFS</a>，其中 BlockCache 可配置为全局的 BlockCache，也可以在每个 SolrCore 中创建单独的 BlockCache。NRTCachingDirectory 也是用于加速索引读取的，其内部使用的是 RAMDirectory（内存中的 Directory 实现），本文不予展开分析。</p><p>初始化的过程主要包含三个部分：</p><ul><li>BlockCache</li><li>BlockDirectoryCache</li><li>BlockDirectory</li></ul><div class="note note-warning"><p>这里补充一下概念：默认地，每个 BlockCache 拥有 1 个 bank，这个 bank 下会有 16384 个 block，每个 block 是 (8192 / 1024) = 8K，像这样被称为一个 slab，其大小为 (16384 * 8192) / 1024 / 1024 = 128M。</p></div><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">protected</span> Directory <span class="hljs-title function_">create</span><span class="hljs-params">(String path, LockFactory lockFactory, DirContext dirContext)</span> <span class="hljs-keyword">throws</span> IOException &#123;
+    <span class="hljs-keyword">assert</span> params != <span class="hljs-literal">null</span> : <span class="hljs-string">&quot;init must be called before create&quot;</span>;
+    log.info(<span class="hljs-string">&quot;creating directory factory for path &#123;&#125;&quot;</span>, path);
+    <span class="hljs-type">Configuration</span> <span class="hljs-variable">conf</span> <span class="hljs-operator">=</span> getConf(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Path</span>(path));
+    
+    <span class="hljs-comment">// metrics 是通过静态内部类 MetricsHolder 的单例模式构造的对象，是全局唯一的</span>
+    <span class="hljs-keyword">if</span> (metrics == <span class="hljs-literal">null</span>) &#123;
+      metrics = MetricsHolder.metrics;
+    &#125;
+
+    <span class="hljs-comment">// 启用 BlockCache</span>
+    <span class="hljs-type">boolean</span> <span class="hljs-variable">blockCacheEnabled</span> <span class="hljs-operator">=</span> getConfig(BLOCKCACHE_ENABLED, <span class="hljs-literal">true</span>);
+    <span class="hljs-comment">// 如果启用，对于每个节点上的集合都会使用一个 HDFS BlockCache</span>
+    <span class="hljs-comment">// 如果禁用，每个 SolrCore 都会创建自己私有的 HDFS BlockCache</span>
+    <span class="hljs-type">boolean</span> <span class="hljs-variable">blockCacheGlobal</span> <span class="hljs-operator">=</span> getConfig(BLOCKCACHE_GLOBAL, <span class="hljs-literal">true</span>);
+    <span class="hljs-comment">// 启用读 BlockCache</span>
+    <span class="hljs-type">boolean</span> <span class="hljs-variable">blockCacheReadEnabled</span> <span class="hljs-operator">=</span> getConfig(BLOCKCACHE_READ_ENABLED, <span class="hljs-literal">true</span>);
+    
+    <span class="hljs-keyword">final</span> HdfsDirectory hdfsDir;
+
+    <span class="hljs-keyword">final</span> Directory dir;
+    <span class="hljs-comment">// 判断是否启用 BlockCache</span>
+    <span class="hljs-keyword">if</span> (blockCacheEnabled &amp;&amp; dirContext != DirContext.META_DATA) &#123;
+      <span class="hljs-comment">// 每个缓存片的块数</span>
+      <span class="hljs-type">int</span> <span class="hljs-variable">numberOfBlocksPerBank</span> <span class="hljs-operator">=</span> getConfig(NUMBEROFBLOCKSPERBANK, <span class="hljs-number">16384</span>);
+
+      <span class="hljs-comment">// 缓存大小，默认值为 8192 即 8K</span>
+      <span class="hljs-type">int</span> <span class="hljs-variable">blockSize</span> <span class="hljs-operator">=</span> BlockDirectory.BLOCK_SIZE;
+
+      <span class="hljs-comment">// 每个 BlockCache 的切片数</span>
+      <span class="hljs-type">int</span> <span class="hljs-variable">bankCount</span> <span class="hljs-operator">=</span> getConfig(BLOCKCACHE_SLAB_COUNT, <span class="hljs-number">1</span>);
+
+      <span class="hljs-comment">// 启用直接内存分配（堆外内存），如果为 false 则使用堆内存</span>
+      <span class="hljs-type">boolean</span> <span class="hljs-variable">directAllocation</span> <span class="hljs-operator">=</span> getConfig(BLOCKCACHE_DIRECT_MEMORY_ALLOCATION, <span class="hljs-literal">true</span>);
+
+      <span class="hljs-comment">// 每个切片的大小</span>
+      <span class="hljs-type">int</span> <span class="hljs-variable">slabSize</span> <span class="hljs-operator">=</span> numberOfBlocksPerBank * blockSize;
+      log.info(
+          <span class="hljs-string">&quot;Number of slabs of block cache [&#123;&#125;] with direct memory allocation set to [&#123;&#125;]&quot;</span>,
+          bankCount, directAllocation);
+      log.info(
+          <span class="hljs-string">&quot;Block cache target memory usage, slab size of [&#123;&#125;] will allocate [&#123;&#125;] slabs and use ~[&#123;&#125;] bytes&quot;</span>,
+          <span class="hljs-keyword">new</span> <span class="hljs-title class_">Object</span>[] &#123;slabSize, bankCount,
+              ((<span class="hljs-type">long</span>) bankCount * (<span class="hljs-type">long</span>) slabSize)&#125;);
+      
+      <span class="hljs-type">int</span> <span class="hljs-variable">bsBufferSize</span> <span class="hljs-operator">=</span> params.getInt(<span class="hljs-string">&quot;solr.hdfs.blockcache.bufferstore.buffersize&quot;</span>, blockSize);
+      <span class="hljs-type">int</span> <span class="hljs-variable">bsBufferCount</span> <span class="hljs-operator">=</span> params.getInt(<span class="hljs-string">&quot;solr.hdfs.blockcache.bufferstore.buffercount&quot;</span>, <span class="hljs-number">0</span>); <span class="hljs-comment">// this is actually total size</span>
+      
+      <span class="hljs-type">BlockCache</span> <span class="hljs-variable">blockCache</span> <span class="hljs-operator">=</span> getBlockDirectoryCache(numberOfBlocksPerBank,
+          blockSize, bankCount, directAllocation, slabSize,
+          bsBufferSize, bsBufferCount, blockCacheGlobal);
+      
+      <span class="hljs-type">Cache</span> <span class="hljs-variable">cache</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">BlockDirectoryCache</span>(blockCache, path, metrics, blockCacheGlobal);
+      <span class="hljs-type">int</span> <span class="hljs-variable">readBufferSize</span> <span class="hljs-operator">=</span> params.getInt(<span class="hljs-string">&quot;solr.hdfs.blockcache.read.buffersize&quot;</span>, blockSize);
+      hdfsDir = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HdfsDirectory</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Path</span>(path), lockFactory, conf, readBufferSize);
+      dir = <span class="hljs-keyword">new</span> <span class="hljs-title class_">BlockDirectory</span>(path, hdfsDir, cache, <span class="hljs-literal">null</span>, blockCacheReadEnabled, <span class="hljs-literal">false</span>, cacheMerges, cacheReadOnce);
+    &#125; <span class="hljs-keyword">else</span> &#123;
+      hdfsDir = <span class="hljs-keyword">new</span> <span class="hljs-title class_">HdfsDirectory</span>(<span class="hljs-keyword">new</span> <span class="hljs-title class_">Path</span>(path), conf);
+      dir = hdfsDir;
+    &#125;
+    <span class="hljs-keyword">if</span> (params.getBool(LOCALITYMETRICS_ENABLED, <span class="hljs-literal">false</span>)) &#123;
+      LocalityHolder.reporter.registerDirectory(hdfsDir);
+    &#125;
+
+    <span class="hljs-comment">// 默认使用 NRTCachingDirectory 以达到近实时搜索的目的</span>
+    <span class="hljs-type">boolean</span> <span class="hljs-variable">nrtCachingDirectory</span> <span class="hljs-operator">=</span> getConfig(NRTCACHINGDIRECTORY_ENABLE, <span class="hljs-literal">true</span>);
+    <span class="hljs-keyword">if</span> (nrtCachingDirectory) &#123;
+      <span class="hljs-type">double</span> <span class="hljs-variable">nrtCacheMaxMergeSizeMB</span> <span class="hljs-operator">=</span> getConfig(NRTCACHINGDIRECTORY_MAXMERGESIZEMB, <span class="hljs-number">16</span>);
+      <span class="hljs-type">double</span> <span class="hljs-variable">nrtCacheMaxCacheMB</span> <span class="hljs-operator">=</span> getConfig(NRTCACHINGDIRECTORY_MAXCACHEMB, <span class="hljs-number">192</span>);
+      
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">NRTCachingDirectory</span>(dir, nrtCacheMaxMergeSizeMB, nrtCacheMaxCacheMB);
+    &#125;
+    <span class="hljs-keyword">return</span> dir;
+&#125;</code></pre></div><h3 id="BlockCache"><a href="#BlockCache" class="headerlink" title="BlockCache"></a>BlockCache</h3><p>当配置全局的 BlockCache 时，下面的方法保证了 BlockCache 是全局唯一共享的，理论上这里我觉得可以用 volatile 关键字修饰 globalBlockCache，然后再加上一层判断 globalBlockCache 是否为 null 后使用 synchronized 关键字，应该可以稍微提升一点效率，也就是采用双重校验锁的单例设计模式，不过此方法作为初始化方法也不会频繁进入，最新版尚未改动。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">private</span> BlockCache <span class="hljs-title function_">getBlockDirectoryCache</span><span class="hljs-params">(<span class="hljs-type">int</span> numberOfBlocksPerBank, <span class="hljs-type">int</span> blockSize, <span class="hljs-type">int</span> bankCount,</span>
+<span class="hljs-params">      <span class="hljs-type">boolean</span> directAllocation, <span class="hljs-type">int</span> slabSize, <span class="hljs-type">int</span> bufferSize, <span class="hljs-type">int</span> bufferCount, <span class="hljs-type">boolean</span> staticBlockCache)</span> &#123;
+    <span class="hljs-comment">// 未配置 solr.hdfs.blockcache.global 为 false，每个 SolrCore 都会新创建一个 BlockCache</span>
+    <span class="hljs-keyword">if</span> (!staticBlockCache) &#123;
+      log.info(<span class="hljs-string">&quot;Creating new single instance HDFS BlockCache&quot;</span>);
+      <span class="hljs-keyword">return</span> createBlockCache(numberOfBlocksPerBank, blockSize, bankCount, directAllocation, slabSize, bufferSize, bufferCount);
+    &#125;
+    <span class="hljs-comment">// 默认配置全局 BlockCache，不会创建新的 BlockCache，而是共享</span>
+    <span class="hljs-keyword">synchronized</span> (HdfsDirectoryFactory.class) &#123;
+
+      <span class="hljs-keyword">if</span> (globalBlockCache == <span class="hljs-literal">null</span>) &#123;
+        log.info(<span class="hljs-string">&quot;Creating new global HDFS BlockCache&quot;</span>);
+        globalBlockCache = createBlockCache(numberOfBlocksPerBank, blockSize, bankCount,
+            directAllocation, slabSize, bufferSize, bufferCount);
+      &#125;
+    &#125;
+    <span class="hljs-keyword">return</span> globalBlockCache;
+&#125;</code></pre></div><p>在创建 BlockCache 之前会首先初始化 BufferStore，同时计算出分配的总内存。默认 directAllocation 是配置为 true 即开启堆外内存的，所以当堆外内存过小时，可能会提示 OOM 相关报错，需要指定 MaxDirectMemorySize 参数进行配置或者也可关闭堆外内存的分配。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">private</span> BlockCache <span class="hljs-title function_">createBlockCache</span><span class="hljs-params">(<span class="hljs-type">int</span> numberOfBlocksPerBank, <span class="hljs-type">int</span> blockSize,</span>
+<span class="hljs-params">      <span class="hljs-type">int</span> bankCount, <span class="hljs-type">boolean</span> directAllocation, <span class="hljs-type">int</span> slabSize, <span class="hljs-type">int</span> bufferSize,</span>
+<span class="hljs-params">      <span class="hljs-type">int</span> bufferCount)</span> &#123;
+    BufferStore.initNewBuffer(bufferSize, bufferCount, metrics);
+    <span class="hljs-type">long</span> <span class="hljs-variable">totalMemory</span> <span class="hljs-operator">=</span> (<span class="hljs-type">long</span>) bankCount * (<span class="hljs-type">long</span>) numberOfBlocksPerBank
+        * (<span class="hljs-type">long</span>) blockSize;
+    
+    BlockCache blockCache;
+    <span class="hljs-keyword">try</span> &#123;
+      blockCache = <span class="hljs-keyword">new</span> <span class="hljs-title class_">BlockCache</span>(metrics, directAllocation, totalMemory, slabSize, blockSize);
+    &#125; <span class="hljs-keyword">catch</span> (OutOfMemoryError e) &#123;
+      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RuntimeException</span>(
+          <span class="hljs-string">&quot;The max direct memory is likely too low.  Either increase it (by adding -XX:MaxDirectMemorySize=&lt;size&gt;g -XX:+UseLargePages to your containers startup args)&quot;</span>
+              + <span class="hljs-string">&quot; or disable direct allocation using solr.hdfs.blockcache.direct.memory.allocation=false in solrconfig.xml. If you are putting the block cache on the heap,&quot;</span>
+              + <span class="hljs-string">&quot; your java heap size might not be large enough.&quot;</span>
+              + <span class="hljs-string">&quot; Failed allocating ~&quot;</span> + totalMemory / <span class="hljs-number">1000000.0</span> + <span class="hljs-string">&quot; MB.&quot;</span>,
+          e);
+    &#125;
+    <span class="hljs-keyword">return</span> blockCache;
+&#125;</code></pre></div><p>在初始化 BufferStore 时，将 shardBuffercacheLost、shardBuffercacheAllocate 与 metric 中的对应信息绑定，这样在后续的监控指标中能够获取具体的数据。新创建的 BufferStore 中，会调用至 setupBuffers 方法设置缓冲区，这个缓冲区会创建一个 bufferSize 大小的字节数组阻塞队列。</p><div class="note note-warning"><p>BufferStore 实现了接口 Store，其定义了两个方法，分别是取出缓存的 takeBuffer 方法和放入缓存的 putBuffer 方法，当成功取出缓存时，会增加 shardBuffercacheAllocate，而放入缓存失败时，则会增加 shardBuffercacheLost，以更新监控指标信息。</p></div><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">synchronized</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">initNewBuffer</span><span class="hljs-params">(<span class="hljs-type">int</span> bufferSize, <span class="hljs-type">long</span> totalAmount, Metrics metrics)</span> &#123;
+    <span class="hljs-keyword">if</span> (totalAmount == <span class="hljs-number">0</span>) &#123;
+      <span class="hljs-keyword">return</span>;
+    &#125;
+    <span class="hljs-type">BufferStore</span> <span class="hljs-variable">bufferStore</span> <span class="hljs-operator">=</span> bufferStores.get(bufferSize);
+    <span class="hljs-keyword">if</span> (bufferStore == <span class="hljs-literal">null</span>) &#123;
+      <span class="hljs-type">long</span> <span class="hljs-variable">count</span> <span class="hljs-operator">=</span> totalAmount / bufferSize;
+      <span class="hljs-keyword">if</span> (count &gt; Integer.MAX_VALUE) &#123;
+        count = Integer.MAX_VALUE;
+      &#125;
+      <span class="hljs-type">AtomicLong</span> <span class="hljs-variable">shardBuffercacheLost</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">AtomicLong</span>(<span class="hljs-number">0</span>);
+      <span class="hljs-type">AtomicLong</span> <span class="hljs-variable">shardBuffercacheAllocate</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">AtomicLong</span>(<span class="hljs-number">0</span>);
+      <span class="hljs-keyword">if</span> (metrics != <span class="hljs-literal">null</span>) &#123;
+        shardBuffercacheLost = metrics.shardBuffercacheLost;
+        shardBuffercacheAllocate = metrics.shardBuffercacheAllocate;
+      &#125;
+      <span class="hljs-type">BufferStore</span> <span class="hljs-variable">store</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">BufferStore</span>(bufferSize, (<span class="hljs-type">int</span>) count, shardBuffercacheAllocate, shardBuffercacheLost);
+      bufferStores.put(bufferSize, store);
+    &#125;
+&#125;</code></pre></div><p>继续来看 BlockCache 的构造过程，每个 bank 都会为其创建一个对应的 BlockLocks 和 lockCounters，用于在缓冲时，检查是否能够找到位置进行缓存。默认配置了堆外内存，此处会进行分配，最大实例数为 16384 - 1 = 16383，当内存不足以分配时，会引发上述的 OOM 报错并提示相关信息。</p><p>这里的 cache 是用的 Google 的 Caffeine 本地缓存框架，并加入了监听器，当监听到文件删除时，会释放相应的缓存文件。当然，在关闭 BlockDirectoryCache 时，也会调用 BlockCache 中的 release 方法释放待删除的缓存文件。</p><div class="note note-warning"><p>cache 中存放的是 BlockCacheKey 和 BlockCacheLocation 的对应关系，其中 BlockCacheKey 包含 BlockID、已缓存的文件数、索引文件目录，BlockCacheLocation 包含 BankID、Bank 内 Block 的 bit 位、最后一次进入的时间和访问次数等。</p></div><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-title function_">BlockCache</span><span class="hljs-params">(Metrics metrics, <span class="hljs-type">boolean</span> directAllocation,</span>
+<span class="hljs-params">      <span class="hljs-type">long</span> totalMemory, <span class="hljs-type">int</span> slabSize, <span class="hljs-type">int</span> blockSize)</span> &#123;
+    <span class="hljs-built_in">this</span>.metrics = metrics;
+    numberOfBlocksPerBank = slabSize / blockSize;
+    <span class="hljs-type">int</span> <span class="hljs-variable">numberOfBanks</span> <span class="hljs-operator">=</span> (<span class="hljs-type">int</span>) (totalMemory / slabSize);
+    
+    banks = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ByteBuffer</span>[numberOfBanks];
+    locks = <span class="hljs-keyword">new</span> <span class="hljs-title class_">BlockLocks</span>[numberOfBanks];
+    lockCounters = <span class="hljs-keyword">new</span> <span class="hljs-title class_">AtomicInteger</span>[numberOfBanks];
+    maxEntries = (numberOfBlocksPerBank * numberOfBanks) - <span class="hljs-number">1</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-type">int</span> <span class="hljs-variable">i</span> <span class="hljs-operator">=</span> <span class="hljs-number">0</span>; i &lt; numberOfBanks; i++) &#123;
+      <span class="hljs-keyword">if</span> (directAllocation) &#123;
+        banks[i] = ByteBuffer.allocateDirect(numberOfBlocksPerBank * blockSize);
+      &#125; <span class="hljs-keyword">else</span> &#123;
+        banks[i] = ByteBuffer.allocate(numberOfBlocksPerBank * blockSize);
+      &#125;
+      locks[i] = <span class="hljs-keyword">new</span> <span class="hljs-title class_">BlockLocks</span>(numberOfBlocksPerBank);
+      lockCounters[i] = <span class="hljs-keyword">new</span> <span class="hljs-title class_">AtomicInteger</span>();
+    &#125;
+
+    <span class="hljs-comment">// 用于监听文件删除，并释放缓存资源</span>
+    RemovalListener&lt;BlockCacheKey,BlockCacheLocation&gt; listener = (blockCacheKey, blockCacheLocation, removalCause) -&gt; releaseLocation(blockCacheKey, blockCacheLocation, removalCause);
+
+    cache = Caffeine.newBuilder()
+        .removalListener(listener)
+        .maximumSize(maxEntries)
+        .build();
+    <span class="hljs-built_in">this</span>.blockSize = blockSize;
+&#125;</code></pre></div><h3 id="BlockDirectoryCache"><a href="#BlockDirectoryCache" class="headerlink" title="BlockDirectoryCache"></a>BlockDirectoryCache</h3><p>这里同样用 Caffeine 初始化了 names，names 中保存的是 <span class="label label-primary">缓存文件名 + 已缓存的文件数</span> 对应关系。BlockDirectoryCache 是该包中接口 Cache 的实现，定义了 6 个方法。这里的 setOnRelease 方法会将待释放资存储到 OnRelease 的 CopyOnWriteArrayList 中。在上面定义的监听器监听到文件删除时，会调用 releaseLocation 释放文件资源，并最终通过传入的 BlockCacheKey 删除 keysToRelease 中对应的 key。keysToRelease 存储了待释放的 BlockCacheKey，实际上是通过 BlockCache 的 release 方法调用至 cache.invalidate(Object key) 释放资源。</p><div class="note note-warning"><p>CopyOnWriteArrayList 是写数组的拷贝，支持高效率并发且是线程安全的，读操作无锁的 ArrayList，其本质是所有可变操作都通过对底层数组进行一次新的复制来实现，适合读多写少的场景。</p></div><div class="note note-info"><ul><li><code>delete</code> - 从缓存中删除指定文件</li><li><code>update</code> - 更新指定缓存文件的内容，如有必要会创建一个缓存实例</li><li><code>fetch</code> - 获取指定的缓存文件内容，如果能找到缓存内容则返回 true</li><li><code>size</code> - 已缓存的实例数</li><li><code>renameCacheFile</code> - 重命名缓存中的指定文件，允许在不使缓存无效（即缓存有效）的情况下移动文件</li><li><code>releaseResources</code> - 释放与缓存相关联的所有文件资源</li></ul></div><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-title function_">BlockDirectoryCache</span><span class="hljs-params">(BlockCache blockCache, String path, Metrics metrics, <span class="hljs-type">boolean</span> releaseBlocks)</span> &#123;
+    <span class="hljs-built_in">this</span>.blockCache = blockCache;
+    <span class="hljs-built_in">this</span>.path = path;
+    <span class="hljs-built_in">this</span>.metrics = metrics;
+
+    <span class="hljs-comment">// 最多缓存 50000 的文件数</span>
+    names = Caffeine.newBuilder().maximumSize(<span class="hljs-number">50000</span>).build();
+    
+    <span class="hljs-keyword">if</span> (releaseBlocks) &#123;
+      <span class="hljs-comment">// Collections 提供了 newSetFromMap 来保证元素唯一性的 Map 实现，就是用一个 Set 来表示 Map，它持有这个 Map 的引用，并且保持 Map 的顺序、并发和性能特征</span>
+      keysToRelease = Collections.newSetFromMap(<span class="hljs-keyword">new</span> <span class="hljs-title class_">ConcurrentHashMap</span>&lt;BlockCacheKey,Boolean&gt;(<span class="hljs-number">1024</span>, <span class="hljs-number">0.75f</span>, <span class="hljs-number">512</span>));
+      blockCache.setOnRelease(<span class="hljs-keyword">new</span> <span class="hljs-title class_">OnRelease</span>() &#123;
+        
+        <span class="hljs-meta">@Override</span>
+        <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">release</span><span class="hljs-params">(BlockCacheKey key)</span> &#123;
+          keysToRelease.remove(key);
+        &#125;
+      &#125;);
+    &#125;
+&#125;</code></pre></div><h3 id="BlockDirectory"><a href="#BlockDirectory" class="headerlink" title="BlockDirectory"></a>BlockDirectory</h3><p>BlockDirectory 继承自抽象类 FilterDirectory，该抽象类将调用委托给另一个 Directory 实现，如 NRTCachingDirectory，它们之间可以进行协作。cacheMerges、cacheReadOnce 默认均为 false，当判断是否使用读写缓存时，会用到这两个变量值。blockCacheFileTypes 是 Set<string>类型，当用户指定了缓存的文件类型时，只针对符合文件后缀名的进行缓存，默认是 null，也就是说缓存所有类型的文件。blockCacheReadEnabled 默认为 true 即开启读缓存，可通过配置参数改变值；而 blockCacheWriteEnabled 默认为 false 即关闭写缓存，并且不可通过配置改变值。</string></p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-title function_">BlockDirectory</span><span class="hljs-params">(String dirName, Directory directory, Cache cache,</span>
+<span class="hljs-params">                        Set&lt;String&gt; blockCacheFileTypes, <span class="hljs-type">boolean</span> blockCacheReadEnabled,</span>
+<span class="hljs-params">                        <span class="hljs-type">boolean</span> blockCacheWriteEnabled, <span class="hljs-type">boolean</span> cacheMerges, <span class="hljs-type">boolean</span> cacheReadOnce)</span> <span class="hljs-keyword">throws</span> IOException &#123;
+    <span class="hljs-built_in">super</span>(directory);
+    <span class="hljs-built_in">this</span>.cacheMerges = cacheMerges;
+    <span class="hljs-built_in">this</span>.cacheReadOnce = cacheReadOnce;
+    <span class="hljs-built_in">this</span>.dirName = dirName;
+    blockSize = BLOCK_SIZE;
+    <span class="hljs-built_in">this</span>.cache = cache;
+    <span class="hljs-comment">// 检查是否指定了缓存的文件类型，如 fdt、fdx...</span>
+    <span class="hljs-keyword">if</span> (blockCacheFileTypes == <span class="hljs-literal">null</span> || blockCacheFileTypes.isEmpty()) &#123;
+      <span class="hljs-built_in">this</span>.blockCacheFileTypes = <span class="hljs-literal">null</span>;
+    &#125; <span class="hljs-keyword">else</span> &#123;
+      <span class="hljs-built_in">this</span>.blockCacheFileTypes = blockCacheFileTypes;
+    &#125;
+    <span class="hljs-built_in">this</span>.blockCacheReadEnabled = blockCacheReadEnabled;
+    <span class="hljs-keyword">if</span> (!blockCacheReadEnabled) &#123;
+      log.info(<span class="hljs-string">&quot;Block cache on read is disabled&quot;</span>);
+    &#125;
+    <span class="hljs-built_in">this</span>.blockCacheWriteEnabled = blockCacheWriteEnabled;
+    <span class="hljs-keyword">if</span> (!blockCacheWriteEnabled) &#123;
+      log.info(<span class="hljs-string">&quot;Block cache on write is disabled&quot;</span>);
+    &#125;
+&#125;</code></pre></div><h2 id="写流程"><a href="#写流程" class="headerlink" title="写流程"></a>写流程</h2><p>从 BlockDirectory 的 createOutput 方法开始，该方法会在上层调用，在目录中创建一个新的空文件，并返回一个 IndexOutput 实例，用于追加数据到此文件。</p><div class="note note-warning"><p>注意：因为在 BlockDirectory 的构造方法中 blockCacheWriteEnabled 默认是 false，所以此处的 useWriteCache(name, context) 只会返回 false（方法此处不展开，感兴趣可自行查看源码），并且由于该值不能通过参数配置，所以用户只能通过改动代码后重新编译打包以支持此功能。</p></div><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> IndexOutput <span class="hljs-title function_">createOutput</span><span class="hljs-params">(String name, IOContext context)</span>
+      <span class="hljs-keyword">throws</span> IOException &#123;
+    <span class="hljs-keyword">final</span> <span class="hljs-type">IndexOutput</span> <span class="hljs-variable">dest</span> <span class="hljs-operator">=</span> <span class="hljs-built_in">super</span>.createOutput(name, context);
+    <span class="hljs-keyword">if</span> (useWriteCache(name, context)) &#123;
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">CachedIndexOutput</span>(<span class="hljs-built_in">this</span>, dest, blockSize, name, cache, blockSize);
+    &#125;
+    <span class="hljs-keyword">return</span> dest;
+&#125;</code></pre></div><p>CachedIndexOutput 继承自 ReusedBufferedIndexOutput，在该类的构造方法中会从 BufferStore 中取出缓存准备好。directory.getFileCacheLocation(name) 方法则是将目录与索引文件名拼好作为变量 location 的值，每个 location 都是唯一的。</p><div class="note note-warning"><p>Segment 文件由于索引频繁的小合并，所以会不断改变其值，在缓存文件时要注意。</p></div><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-title function_">CachedIndexOutput</span><span class="hljs-params">(BlockDirectory directory, IndexOutput dest,</span>
+<span class="hljs-params">      <span class="hljs-type">int</span> blockSize, String name, Cache cache, <span class="hljs-type">int</span> bufferSize)</span> &#123;
+    <span class="hljs-built_in">super</span>(<span class="hljs-string">&quot;dest=&quot;</span> + dest + <span class="hljs-string">&quot; name=&quot;</span> + name, name, bufferSize);
+    <span class="hljs-built_in">this</span>.directory = directory;
+    <span class="hljs-built_in">this</span>.dest = dest;
+    <span class="hljs-built_in">this</span>.blockSize = blockSize;
+    <span class="hljs-built_in">this</span>.name = name;
+    <span class="hljs-built_in">this</span>.location = directory.getFileCacheLocation(name);
+    <span class="hljs-built_in">this</span>.cache = cache;
+&#125;</code></pre></div><p>创建完 IndexOutput 是为了实际写入数据，于是便会继续调用 writeByte 方法写入，当下一个要写入的字节 bufferPosition 大于等于 bufferSize 即 1024 时调用 flushBufferToCache 方法将缓冲的字节写入缓存，该方法会调用至 writeInternal 方法，然后调整下一个写入的位置和长度等信息。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">writeByte</span><span class="hljs-params">(<span class="hljs-type">byte</span> b)</span> <span class="hljs-keyword">throws</span> IOException &#123;
+    <span class="hljs-keyword">if</span> (bufferPosition &gt;= bufferSize) &#123;
+      flushBufferToCache();
+    &#125;
+    <span class="hljs-keyword">if</span> (getFilePointer() &gt;= fileLength) &#123;
+      fileLength++;
+    &#125;
+    buffer[bufferPosition++] = b;
+    <span class="hljs-keyword">if</span> (bufferPosition &gt; bufferLength) &#123;
+      bufferLength = bufferPosition;
+    &#125;
+&#125;</code></pre></div><p>获取缓存文件中的位置，写入。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">writeInternal</span><span class="hljs-params">(<span class="hljs-type">byte</span>[] b, <span class="hljs-type">int</span> offset, <span class="hljs-type">int</span> length)</span>
+      <span class="hljs-keyword">throws</span> IOException &#123;
+    <span class="hljs-type">long</span> <span class="hljs-variable">position</span> <span class="hljs-operator">=</span> getBufferStart();
+    <span class="hljs-keyword">while</span> (length &gt; <span class="hljs-number">0</span>) &#123;
+      <span class="hljs-type">int</span> <span class="hljs-variable">len</span> <span class="hljs-operator">=</span> writeBlock(position, b, offset, length);
+      position += len;
+      length -= len;
+      offset += len;
+    &#125;
+  &#125;</code></pre></div><p>获取 Block 的编号、偏移量和要写入的长度信息，先写入文件，再复制到缓存中。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-type">int</span> <span class="hljs-title function_">writeBlock</span><span class="hljs-params">(<span class="hljs-type">long</span> position, <span class="hljs-type">byte</span>[] b, <span class="hljs-type">int</span> offset, <span class="hljs-type">int</span> length)</span>
+      <span class="hljs-keyword">throws</span> IOException &#123;
+    <span class="hljs-comment">// read whole block into cache and then provide needed data</span>
+    <span class="hljs-comment">// 将整个块读入缓存，然后提供所需数据，只有当数据大于 8192 右移后才能分配到新的 blockId</span>
+    <span class="hljs-type">long</span> <span class="hljs-variable">blockId</span> <span class="hljs-operator">=</span> BlockDirectory.getBlock(position);
+    <span class="hljs-type">int</span> <span class="hljs-variable">blockOffset</span> <span class="hljs-operator">=</span> (<span class="hljs-type">int</span>) BlockDirectory.getPosition(position);
+    <span class="hljs-type">int</span> <span class="hljs-variable">lengthToWriteInBlock</span> <span class="hljs-operator">=</span> Math.min(length, blockSize - blockOffset);
+    
+    <span class="hljs-comment">// write the file and copy into the cache</span>
+    <span class="hljs-comment">// 写入文件，并复制到缓存中</span>
+    dest.writeBytes(b, offset, lengthToWriteInBlock);
+    <span class="hljs-comment">// location：索引文件目录 + 文件名</span>
+    cache.update(location, blockId, blockOffset, b, offset,
+        lengthToWriteInBlock);
+    
+    <span class="hljs-keyword">return</span> lengthToWriteInBlock;
+&#125;</code></pre></div><p>names 中存放的是缓存的文件名 + 已缓存的文件数（该值是通过原子类变量 counter 递增存入的），构造一个 BlockCacheKey 对象后，调用 BlockCache 的 store 方法存入相应值，成功后将其添加至待释放资源对象的 keysToRelease 中。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">update</span><span class="hljs-params">(String name, <span class="hljs-type">long</span> blockId, <span class="hljs-type">int</span> blockOffset, <span class="hljs-type">byte</span>[] buffer,</span>
+<span class="hljs-params">      <span class="hljs-type">int</span> offset, <span class="hljs-type">int</span> length)</span> &#123;
+    <span class="hljs-type">Integer</span> <span class="hljs-variable">file</span> <span class="hljs-operator">=</span> names.getIfPresent(name);
+    <span class="hljs-keyword">if</span> (file == <span class="hljs-literal">null</span>) &#123;
+      file = counter.incrementAndGet();
+      names.put(name, file);
+    &#125;
+    <span class="hljs-type">BlockCacheKey</span> <span class="hljs-variable">blockCacheKey</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">BlockCacheKey</span>();
+    blockCacheKey.setPath(path);
+    blockCacheKey.setBlock(blockId);
+    blockCacheKey.setFile(file);
+    <span class="hljs-keyword">if</span> (blockCache.store(blockCacheKey, blockOffset, buffer, offset, length) &amp;&amp; keysToRelease != <span class="hljs-literal">null</span>) &#123;
+      keysToRelease.add(blockCacheKey);
+    &#125;
+&#125;</code></pre></div><p>该方法可能会返回 false，这意味着无法缓存该 Block，也可能是已经缓存了该 Block，所以 Block 当前可能是未更新的，写流程分析至此。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">store</span><span class="hljs-params">(BlockCacheKey blockCacheKey, <span class="hljs-type">int</span> blockOffset,</span>
+<span class="hljs-params">      <span class="hljs-type">byte</span>[] data, <span class="hljs-type">int</span> offset, <span class="hljs-type">int</span> length)</span> &#123;
+    <span class="hljs-keyword">if</span> (length + blockOffset &gt; blockSize) &#123;
+      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">RuntimeException</span>(<span class="hljs-string">&quot;Buffer size exceeded, expecting max [&quot;</span>
+          + blockSize + <span class="hljs-string">&quot;] got length [&quot;</span> + length + <span class="hljs-string">&quot;] with blockOffset [&quot;</span>
+          + blockOffset + <span class="hljs-string">&quot;]&quot;</span>);
+    &#125;
+    <span class="hljs-type">BlockCacheLocation</span> <span class="hljs-variable">location</span> <span class="hljs-operator">=</span> cache.getIfPresent(blockCacheKey);
+    <span class="hljs-keyword">if</span> (location == <span class="hljs-literal">null</span>) &#123;
+      location = <span class="hljs-keyword">new</span> <span class="hljs-title class_">BlockCacheLocation</span>();
+      <span class="hljs-comment">// 当缓存已满（正常情况）时，两次并发写会导致其中一个失败，一个简单的解决办法是留一个空的 Block，社区当前未做</span>
+      <span class="hljs-keyword">if</span> (!findEmptyLocation(location)) &#123;
+        metrics.blockCacheStoreFail.incrementAndGet();
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+      &#125;
+    &#125; <span class="hljs-keyword">else</span> &#123;
+      <span class="hljs-comment">// 没有其他指标需要存储，不将冗余存储视为存储失败</span>
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    &#125;
+
+    <span class="hljs-type">int</span> <span class="hljs-variable">bankId</span> <span class="hljs-operator">=</span> location.getBankId();
+    <span class="hljs-type">int</span> <span class="hljs-variable">bankOffset</span> <span class="hljs-operator">=</span> location.getBlock() * blockSize;
+    <span class="hljs-type">ByteBuffer</span> <span class="hljs-variable">bank</span> <span class="hljs-operator">=</span> getBank(bankId);
+    bank.position(bankOffset + blockOffset);
+    bank.put(data, offset, length);
+
+    cache.put(blockCacheKey.clone(), location);
+    metrics.blockCacheSize.incrementAndGet();
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+&#125;</code></pre></div><h2 id="读流程"><a href="#读流程" class="headerlink" title="读流程"></a>读流程</h2><p>从 BlockDirectory 的 openInput 方法开始，该方法会在上层调用，创建一个 IndexInput 读取已有文件，符合条件则创建 CachedIndexInput，该类继承自抽象类 CustomBufferedIndexInput。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">private</span> IndexInput <span class="hljs-title function_">openInput</span><span class="hljs-params">(String name, <span class="hljs-type">int</span> bufferSize, IOContext context)</span>
+      <span class="hljs-keyword">throws</span> IOException &#123;
+    <span class="hljs-keyword">final</span> <span class="hljs-type">IndexInput</span> <span class="hljs-variable">source</span> <span class="hljs-operator">=</span> <span class="hljs-built_in">super</span>.openInput(name, context);
+    <span class="hljs-keyword">if</span> (useReadCache(name, context)) &#123;
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">CachedIndexInput</span>(source, blockSize, name,
+          getFileCacheName(name), cache, bufferSize);
+    &#125;
+    <span class="hljs-keyword">return</span> source;
+&#125;</code></pre></div><p>而开始读取索引文件时，无非是几个方法，readByte 和 readBytes，都会调用一个比较重要的方法 refill，当没有数据时，会从 BufferStore 中取出缓存，获取相应的位置，调用 fetchBlock 方法，该方法会试着读取缓存文件内容，如果可以就直接返回，如果不可以则将文件读取至缓存或者更新缓存内容。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">refill</span><span class="hljs-params">()</span> <span class="hljs-keyword">throws</span> IOException &#123;
+    <span class="hljs-type">long</span> <span class="hljs-variable">start</span> <span class="hljs-operator">=</span> bufferStart + bufferPosition;
+    <span class="hljs-type">long</span> <span class="hljs-variable">end</span> <span class="hljs-operator">=</span> start + bufferSize;
+    <span class="hljs-keyword">if</span> (end &gt; length()) <span class="hljs-comment">// don&#x27;t read past EOF</span>
+    end = length();
+    <span class="hljs-type">int</span> <span class="hljs-variable">newLength</span> <span class="hljs-operator">=</span> (<span class="hljs-type">int</span>) (end - start);
+    <span class="hljs-keyword">if</span> (newLength &lt;= <span class="hljs-number">0</span>) <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">EOFException</span>(<span class="hljs-string">&quot;read past EOF: &quot;</span> + <span class="hljs-built_in">this</span>);
+    
+    <span class="hljs-keyword">if</span> (buffer == <span class="hljs-literal">null</span>) &#123;
+      buffer = store.takeBuffer(bufferSize);
+      seekInternal(bufferStart);
+    &#125;
+    readInternal(buffer, <span class="hljs-number">0</span>, newLength);
+    bufferLength = newLength;
+    bufferStart = start;
+    bufferPosition = <span class="hljs-number">0</span>;
+&#125;</code></pre></div><p>在 fetchBlock 中，调用 checkCache 方法，然后调用至 BlockDirectoryCache 的 fetch 方法获取指定的缓存文件内容，如果能找到返回 true。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">fetch</span><span class="hljs-params">(String name, <span class="hljs-type">long</span> blockId, <span class="hljs-type">int</span> blockOffset, <span class="hljs-type">byte</span>[] b,</span>
+<span class="hljs-params">      <span class="hljs-type">int</span> off, <span class="hljs-type">int</span> lengthToReadInBlock)</span> &#123;
+    <span class="hljs-type">Integer</span> <span class="hljs-variable">file</span> <span class="hljs-operator">=</span> names.getIfPresent(name);
+    <span class="hljs-keyword">if</span> (file == <span class="hljs-literal">null</span>) &#123;
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    &#125;
+    <span class="hljs-type">BlockCacheKey</span> <span class="hljs-variable">blockCacheKey</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">BlockCacheKey</span>();
+    blockCacheKey.setPath(path);
+    blockCacheKey.setBlock(blockId);
+    blockCacheKey.setFile(file);
+    <span class="hljs-type">boolean</span> <span class="hljs-variable">fetch</span> <span class="hljs-operator">=</span> blockCache.fetch(blockCacheKey, b, blockOffset, off,
+        lengthToReadInBlock);
+    <span class="hljs-keyword">return</span> fetch;
+&#125;</code></pre></div><p>直接获取缓存文件内容，如果没找到或者失效了则返回 false。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">fetch</span><span class="hljs-params">(BlockCacheKey blockCacheKey, <span class="hljs-type">byte</span>[] buffer,</span>
+<span class="hljs-params">      <span class="hljs-type">int</span> blockOffset, <span class="hljs-type">int</span> off, <span class="hljs-type">int</span> length)</span> &#123;
+    <span class="hljs-type">BlockCacheLocation</span> <span class="hljs-variable">location</span> <span class="hljs-operator">=</span> cache.getIfPresent(blockCacheKey);
+    <span class="hljs-keyword">if</span> (location == <span class="hljs-literal">null</span>) &#123;
+      metrics.blockCacheMiss.incrementAndGet();
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    &#125;
+
+    <span class="hljs-type">int</span> <span class="hljs-variable">bankId</span> <span class="hljs-operator">=</span> location.getBankId();
+    <span class="hljs-type">int</span> <span class="hljs-variable">bankOffset</span> <span class="hljs-operator">=</span> location.getBlock() * blockSize;
+    location.touch();
+    <span class="hljs-type">ByteBuffer</span> <span class="hljs-variable">bank</span> <span class="hljs-operator">=</span> getBank(bankId);
+    bank.position(bankOffset + blockOffset);
+    bank.get(buffer, off, length);
+
+    <span class="hljs-keyword">if</span> (location.isRemoved()) &#123;
+      <span class="hljs-comment">// 必须在读取完成后检查，因为在读取之前或读取期间可能已将 bank 重新用于另一个块</span>
+      metrics.blockCacheMiss.incrementAndGet();
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    &#125;
+
+    metrics.blockCacheHit.incrementAndGet();
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+&#125;</code></pre></div><p>未获取到指定的缓存文件内容，从文件系统中读取文件内容并加载至缓存，此处调用的 update 方法在写流程中已经分析过，该方法更新指定缓存文件的内容，如有必要也会创建一个缓存实例，以便下次读取，读流程分析至此。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">private</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">readIntoCacheAndResult</span><span class="hljs-params">(<span class="hljs-type">long</span> blockId, <span class="hljs-type">int</span> blockOffset,</span>
+<span class="hljs-params">                                        <span class="hljs-type">byte</span>[] b, <span class="hljs-type">int</span> off, <span class="hljs-type">int</span> lengthToReadInBlock)</span> <span class="hljs-keyword">throws</span> IOException &#123;
+      <span class="hljs-type">long</span> <span class="hljs-variable">position</span> <span class="hljs-operator">=</span> getRealPosition(blockId, <span class="hljs-number">0</span>);
+      <span class="hljs-type">int</span> <span class="hljs-variable">length</span> <span class="hljs-operator">=</span> (<span class="hljs-type">int</span>) Math.min(blockSize, fileLength - position);
+      source.seek(position);
+
+      <span class="hljs-type">byte</span>[] buf = store.takeBuffer(blockSize);
+      source.readBytes(buf, <span class="hljs-number">0</span>, length);
+      System.arraycopy(buf, blockOffset, b, off, lengthToReadInBlock);
+      cache.update(cacheName, blockId, <span class="hljs-number">0</span>, buf, <span class="hljs-number">0</span>, blockSize);
+      store.putBuffer(buf);
+&#125;</code></pre></div></div><hr><div><div class="post-metas mb-3"><div class="post-meta mr-3"><i class="iconfont icon-category"></i> <a class="hover-with-bg" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a> <a class="hover-with-bg" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E5%88%86%E5%B8%83%E5%BC%8F%E6%A3%80%E7%B4%A2/">分布式检索</a> <a class="hover-with-bg" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E5%88%86%E5%B8%83%E5%BC%8F%E6%A3%80%E7%B4%A2/Solr/">Solr</a></div><div class="post-meta"><i class="iconfont icon-tags"></i> <a class="hover-with-bg" href="/tags/Solr/">Solr</a></div></div><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p><div class="post-prevnext"><article class="post-prev col-6"><a href="/2024/06/05/Apache%20Kylin%20%E6%9E%84%E5%BB%BA%EF%BC%88%E4%B8%80%EF%BC%89/"><i class="iconfont icon-arrowleft"></i> <span class="hidden-mobile">Apache Kylin 构建（一）</span> <span class="visible-mobile">上一篇</span></a></article><article class="post-next col-6"><a href="/2021/04/13/Spark-%E8%B0%83%E5%BA%A6%E7%B3%BB%E7%BB%9F/"><span class="hidden-mobile">Spark 调度系统</span> <span class="visible-mobile">下一篇</span> <i class="iconfont icon-arrowright"></i></a></article></div></div><article class="comments" id="comments" lazyload><div id="valine"></div><script type="text/javascript">Fluid.utils.loadComments("#valine",(function(){Fluid.utils.createScript("https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js",(function(){new Valine({el:"#valine",app_id:"gffo4y4h3e1D9tHT2ADcTxtp-gzGzoHsz",app_key:"EaplHXnXAqIYs5wCxGMVB4l4",placeholder:"说点什么",path:window.location.pathname,avatar:"robohash",meta:["nick","mail"],pageSize:"10",lang:"zh-CN",highlight:!0,recordIP:!0,serverURLs:""})}))}))</script><noscript>Please enable JavaScript to view the comments</noscript></article></article></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc"><p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p><div class="toc-body" id="toc-body"></div></div></div></div></div><a id="scroll-top-button" href="#" role="button"><i class="iconfont icon-arrowup" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4><button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"><input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div></main><footer class="text-center mt-5 py-3"><div class="footer-content"><a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a></div><div class="statistics"><span id="leancloud-site-pv-container" style="display:none">总访问量 <span id="leancloud-site-pv"></span> 次 </span><span id="leancloud-site-uv-container" style="display:none">总访客数 <span id="leancloud-site-uv"></span> 人</span></div></footer><script src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css"><script>NProgress.configure({showSpinner:!1,trickleSpeed:100}),NProgress.start(),window.addEventListener("load",(function(){NProgress.done()}))</script><script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js"></script><script src="/js/events.js"></script><script src="/js/plugins.js"></script><script src="/js/img-lazyload.js"></script><script src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js"></script><script defer src="/js/leancloud.js"></script><script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js"></script><script>!function(t,i){(0,Fluid.plugins.typing)(i.getElementById("subtitle").title)}(window,document)</script><script src="/js/local-search.js"></script><script>$("#local-search-input").on("click",(function(){searchFunc("/local-search.xml","local-search-input","local-search-result")})),$("#modalSearch").on("shown.bs.modal",(function(){$("#local-search-input").focus()}))</script><script src="/js/boot.js"></script></body></html>

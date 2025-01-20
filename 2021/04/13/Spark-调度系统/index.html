@@ -1,0 +1,535 @@
+<!DOCTYPE html><html lang="zh-CN" data-default-color-scheme="&#34;auto&#34;"><head><meta charset="UTF-8"><link rel="apple-touch-icon" sizes="76x76" href="/img/apple-touch-icon.png"><link rel="icon" href="/img/favicon.ico"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,shrink-to-fit=no"><meta http-equiv="x-ua-compatible" content="ie=edge"><meta name="theme-color" content="#2f4154"><meta name="description" content=""><meta name="author" content="Guoliang"><meta name="keywords" content=""><title>Spark 调度系统 - Guoliang&#39;s Blog</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@4.0.0/github-markdown.min.css"><link rel="stylesheet" href="/lib/hint/hint.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@10.6.0/styles/a11y-dark.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_ba1fz6golrf.css"><link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_kmeydafke9r.css"><link rel="stylesheet" href="/css/main.css"><script id="fluid-configs">var Fluid=window.Fluid||{},CONFIG={hostname:"example.com",root:"/",version:"1.8.10",typing:{enable:!0,typeSpeed:80,cursorChar:"乄",loop:!1},anchorjs:{enable:!0,element:"h1,h2,h3,h4,h5,h6",placement:"right",visible:"always",icon:"❡"},progressbar:{enable:!0,height_px:3,color:"#29d",options:{showSpinner:!1,trickleSpeed:100}},copy_btn:!0,image_zoom:{enable:!0},toc:{enable:!0,headingSelector:"h1,h2,h3,h4,h5,h6",collapseDepth:0},lazyload:{enable:!0,loading_img:"/img/loading.gif",onlypost:!1,offset_factor:2},web_analytics:{enable:!0,baidu:null,google:null,gtag:null,tencent:{sid:null,cid:null},woyaola:null,cnzz:null,leancloud:{app_id:"gffo4y4h3e1D9tHT2ADcTxtp-gzGzoHsz",app_key:"EaplHXnXAqIYs5wCxGMVB4l4",server_url:"https://gffo4y4h.lc-cn-n1-shared.com"}}}</script><script src="/js/utils.js"></script><script src="/js/color-schema.js"></script><meta name="generator" content="Hexo 5.4.2"></head><body><header style="height:70vh"><nav id="navbar" class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar"><div class="container"><a class="navbar-brand" href="/">&nbsp;<strong>步尽白</strong>&nbsp;</a> <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><div class="animated-icon"><span></span><span></span><span></span></div></button><div class="collapse navbar-collapse" id="navbarSupportedContent"><ul class="navbar-nav ml-auto text-center"><li class="nav-item"><a class="nav-link" href="/"><i class="iconfont icon-home-fill"></i> 首页</a></li><li class="nav-item"><a class="nav-link" href="/archives/"><i class="iconfont icon-archive-fill"></i> 归档</a></li><li class="nav-item"><a class="nav-link" href="/categories/"><i class="iconfont icon-category-fill"></i> 分类</a></li><li class="nav-item"><a class="nav-link" href="/tags/"><i class="iconfont icon-tags-fill"></i> 标签</a></li><li class="nav-item"><a class="nav-link" href="/about/"><i class="iconfont icon-user-fill"></i> 关于</a></li><li class="nav-item" id="search-btn"><a class="nav-link" target="_self" data-toggle="modal" data-target="#modalSearch">&nbsp;<i class="iconfont icon-search"></i>&nbsp;</a></li><li class="nav-item" id="color-toggle-btn"><a class="nav-link" target="_self">&nbsp;<i class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a></li></ul></div></div></nav><div class="banner" id="banner" parallax="true" style="background:url(/img/pingan.jpg) no-repeat center center;background-size:cover"><div class="full-bg-img"><div class="mask flex-center" style="background-color:rgba(0,0,0,.3)"><div class="page-header text-center fade-in-up"><span class="h2" id="subtitle" title="Spark 调度系统"></span><div class="mt-3"><span class="post-meta mr-2"><i class="iconfont icon-author" aria-hidden="true"></i> Guoliang </span><span class="post-meta"><i class="iconfont icon-date-fill" aria-hidden="true"></i> <time datetime="2021-04-13 20:04" pubdate>2021年4月13日 晚上</time></span></div><div class="mt-1"><span class="post-meta mr-2"><i class="iconfont icon-chart"></i> 5.3k 字 </span><span class="post-meta mr-2"><i class="iconfont icon-clock-fill"></i> 39 分钟 </span><span id="leancloud-page-views-container" class="post-meta" style="display:none"><i class="iconfont icon-eye" aria-hidden="true"></i> <span id="leancloud-page-views"></span> 次</span></div></div></div></div></div></header><main><div class="container-fluid nopadding-x"><div class="row nomargin-x"><div class="d-none d-lg-block col-lg-2"></div><div class="col-lg-8 nopadding-x-md"><div class="container nopadding-x-md" id="board-ctn"><div class="py-5" id="board"><article class="post-content mx-auto"><h1 style="display:none">Spark 调度系统</h1><p class="note note-info">本文最后更新于：2025年1月20日 下午</p><div class="markdown-body"><h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>Spark 调度系统用于将用户提交的任务调度到集群中的不同节点执行，资源调度分为两层，第一层是 Cluster Manager（YARN 模式下为 ResourceManager，Mesos 模式下为 Mesos Master，Standalone 模式为 Master），将资源分配给 Application；第二层是 Application 进一步将资源分配给各个 Task，也就是 TaskScheduler（TaskSchedulerImpl）中的资源调度。</p><p>用户向 Spark 提交一个任务，Spark 看作是一个作业（Job），首先对 Job 进行一系列 RDD 转换，并通过 RDD 之间的依赖关系构建有向无环图（DAG）。然后根据 RDD 依赖的不同将 RDD 划分到不同的阶段（Stage），每个阶段按照分区（Partition）的数量创建多个任务（Task），最后将这些任务提交到集群的各个节点上运行。</p><p>调度系统主要由 DAGScheduler 和 TaskScheduler 构成。</p><h2 id="工作流程图"><a href="#工作流程图" class="headerlink" title="工作流程图"></a>工作流程图</h2><p><img src="https://cdn.jsdelivr.net/gh/gleonSun/images@main/image/Workflow-1737347988887.png" srcset="/img/loading.gif" lazyload></p><h2 id="DAGScheduler"><a href="#DAGScheduler" class="headerlink" title="DAGScheduler"></a>DAGScheduler</h2><p>所有的组件都通过向 DAGScheduler 投递 DAGSchedulerEvent 来使用 DAGScheduler，其内部的 DAGSchedulerEventProcessLoop 将处理这些 DAGSchedulerEvent。</p><ul><li><p><code>JobListener</code></p><p>在向 DAGScheduler 提交作业之后，用于监听作业完成或失败事件的接口。每当任务成功以及整个作业失败时，侦听器都会收到通知。</p></li><li><p><code>JobWaiter</code></p><p>等待DAGScheduler作业完成的对象。任务完成后，它将结果传递给给定的处理函数。</p></li><li><p><code>ActiveJob</code></p><p>用来表示已经激活的 Job，即被 DAGScheduler 接收处理的 Job。</p></li><li><p><code>DAGSchedulerEventProcessLoop</code></p><p>DAGSchedulerEventProcessLoop 是 DAGScheduler 内部的事件循环处理器，用于处理 DAGSchedulerEvent 类型的事件。</p></li></ul><h2 id="TaskScheduler"><a href="#TaskScheduler" class="headerlink" title="TaskScheduler"></a>TaskScheduler</h2><p>TaskScheduler 定义了对任务进行调度的接口规范，允许向 Spark 调度系统插入不同的 TaskScheduler 实现，但目前只有 TaskSchedulerImpl 这一个具体实现。只为单个 Driver 调度任务，功能包括接收 DAGScheduler 给每个 Stage 创建的 Task 集合，按照调度算法将资源分配给 Task，将 Task 交给 Spark 集群不同节点上的 Executor 运行，在 Task 执行失败时重试，通过推断执行减轻落后 Task 对整体作业进度的影响。</p><h1 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h1><h2 id="源码流程图"><a href="#源码流程图" class="headerlink" title="源码流程图"></a>源码流程图</h2><p><img src="https://cdn.jsdelivr.net/gh/gleonSun/images@main/image/CodeFlow-1737347988886.png" srcset="/img/loading.gif" lazyload></p><h2 id="源码"><a href="#源码" class="headerlink" title="源码"></a>源码</h2><p>我们从 SparkContext 开始，SparkContext 提供了多个重载的 runJob 方法，但这些方法最终都调用此方法。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">runJob</span></span>[<span class="hljs-type">T</span>, <span class="hljs-type">U</span>: <span class="hljs-type">ClassTag</span>](
+      rdd: <span class="hljs-type">RDD</span>[<span class="hljs-type">T</span>],
+      func: (<span class="hljs-type">TaskContext</span>, <span class="hljs-type">Iterator</span>[<span class="hljs-type">T</span>]) =&gt; <span class="hljs-type">U</span>,
+      partitions: <span class="hljs-type">Seq</span>[<span class="hljs-type">Int</span>],
+      resultHandler: (<span class="hljs-type">Int</span>, <span class="hljs-type">U</span>) =&gt; <span class="hljs-type">Unit</span>): <span class="hljs-type">Unit</span> = &#123;
+    <span class="hljs-keyword">if</span> (stopped.get()) &#123;
+      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-type">IllegalStateException</span>(<span class="hljs-string">&quot;SparkContext has been shutdown&quot;</span>)
+    &#125;
+    <span class="hljs-keyword">val</span> callSite = getCallSite
+    <span class="hljs-keyword">val</span> cleanedFunc = clean(func)
+    logInfo(<span class="hljs-string">&quot;Starting job: &quot;</span> + callSite.shortForm)
+    <span class="hljs-keyword">if</span> (conf.getBoolean(<span class="hljs-string">&quot;spark.logLineage&quot;</span>, <span class="hljs-literal">false</span>)) &#123;
+      logInfo(<span class="hljs-string">&quot;RDD&#x27;s recursive dependencies:\n&quot;</span> + rdd.toDebugString)
+    &#125;
+    <span class="hljs-comment">// 将 DAG 及 RDD 提交给 DAGScheduler 进行调度</span>
+    dagScheduler.runJob(rdd, cleanedFunc, partitions, callSite, resultHandler, localProperties.get)
+    progressBar.foreach(_.finishAll())
+    <span class="hljs-comment">// 保存检查点</span>
+    rdd.doCheckpoint()
+&#125;</code></pre></div><p>生成 Job 的运行时间 start 并调用 submitJob 方法提交 Job。由于执行 Job 的过程是异步的，因此 submitJob 将立即返回 JobWaiter 对象。使用 JobWaiter 等待 Job 处理完毕。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">runJob</span></span>[<span class="hljs-type">T</span>, <span class="hljs-type">U</span>](
+      rdd: <span class="hljs-type">RDD</span>[<span class="hljs-type">T</span>],
+      func: (<span class="hljs-type">TaskContext</span>, <span class="hljs-type">Iterator</span>[<span class="hljs-type">T</span>]) =&gt; <span class="hljs-type">U</span>,
+      partitions: <span class="hljs-type">Seq</span>[<span class="hljs-type">Int</span>],
+      callSite: <span class="hljs-type">CallSite</span>,
+      resultHandler: (<span class="hljs-type">Int</span>, <span class="hljs-type">U</span>) =&gt; <span class="hljs-type">Unit</span>,
+      properties: <span class="hljs-type">Properties</span>): <span class="hljs-type">Unit</span> = &#123;
+    <span class="hljs-keyword">val</span> start = <span class="hljs-type">System</span>.nanoTime
+    <span class="hljs-comment">// 提交 Job</span>
+    <span class="hljs-keyword">val</span> waiter = submitJob(rdd, func, partitions, callSite, resultHandler, properties)
+    <span class="hljs-comment">// JobWaiter 等待 Job 处理完毕</span>
+    <span class="hljs-type">ThreadUtils</span>.awaitReady(waiter.completionFuture, <span class="hljs-type">Duration</span>.<span class="hljs-type">Inf</span>)
+    waiter.completionFuture.value.get <span class="hljs-keyword">match</span> &#123; 
+    <span class="hljs-comment">// JobWaiter 监听到 Job 的处理结果，进行进一步处理</span>
+      <span class="hljs-keyword">case</span> scala.util.<span class="hljs-type">Success</span>(_) =&gt;
+      <span class="hljs-comment">// 如果 Job 执行成功，根据处理结果打印相应的日志</span>
+        logInfo(<span class="hljs-string">&quot;Job %d finished: %s, took %f s&quot;</span>.format
+          (waiter.jobId, callSite.shortForm, (<span class="hljs-type">System</span>.nanoTime - start) / <span class="hljs-number">1e9</span>))
+      <span class="hljs-keyword">case</span> scala.util.<span class="hljs-type">Failure</span>(exception) =&gt;
+      <span class="hljs-comment">// 如果 Job 执行失败，除打印日志外，还将抛出 Job 失败的异常信息</span>
+        logInfo(<span class="hljs-string">&quot;Job %d failed: %s, took %f s&quot;</span>.format
+          (waiter.jobId, callSite.shortForm, (<span class="hljs-type">System</span>.nanoTime - start) / <span class="hljs-number">1e9</span>))
+        <span class="hljs-keyword">val</span> callerStackTrace = <span class="hljs-type">Thread</span>.currentThread().getStackTrace.tail
+        exception.setStackTrace(exception.getStackTrace ++ callerStackTrace)
+        <span class="hljs-keyword">throw</span> exception
+    &#125;
+&#125;</code></pre></div><p>在检查 Job 分区数量符合条件后，会向 DAGSchedulerEventProcessLoop 发送 JobSubmitted 事件，同时会将事件放入 eventQueue（LinkedBlockingDeque）中。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">submitJob</span></span>[<span class="hljs-type">T</span>, <span class="hljs-type">U</span>](
+      rdd: <span class="hljs-type">RDD</span>[<span class="hljs-type">T</span>],
+      func: (<span class="hljs-type">TaskContext</span>, <span class="hljs-type">Iterator</span>[<span class="hljs-type">T</span>]) =&gt; <span class="hljs-type">U</span>,
+      partitions: <span class="hljs-type">Seq</span>[<span class="hljs-type">Int</span>],
+      callSite: <span class="hljs-type">CallSite</span>,
+      resultHandler: (<span class="hljs-type">Int</span>, <span class="hljs-type">U</span>) =&gt; <span class="hljs-type">Unit</span>,
+      properties: <span class="hljs-type">Properties</span>): <span class="hljs-type">JobWaiter</span>[<span class="hljs-type">U</span>] = &#123;
+    <span class="hljs-comment">// 获取当前 Job 的最大分区数 maxPartitions</span>
+    <span class="hljs-keyword">val</span> maxPartitions = rdd.partitions.length
+    partitions.find(p =&gt; p &gt;= maxPartitions || p &lt; <span class="hljs-number">0</span>).foreach &#123; p =&gt;
+      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-type">IllegalArgumentException</span>(
+        <span class="hljs-string">&quot;Attempting to access a non-existent partition: &quot;</span> + p + <span class="hljs-string">&quot;. &quot;</span> +
+          <span class="hljs-string">&quot;Total number of partitions: &quot;</span> + maxPartitions)
+    &#125;
+
+    <span class="hljs-comment">// 生成下一个 Job 的 jobId</span>
+    <span class="hljs-keyword">val</span> jobId = nextJobId.getAndIncrement()
+    <span class="hljs-comment">// 如果 Job 分区数为 0，创建一个 totalTasks 属性为 0 的 JobWaiter 并返回</span>
+    <span class="hljs-keyword">if</span> (partitions.size == <span class="hljs-number">0</span>) &#123;
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-type">JobWaiter</span>[<span class="hljs-type">U</span>](<span class="hljs-keyword">this</span>, jobId, <span class="hljs-number">0</span>, resultHandler)
+    &#125;
+
+    assert(partitions.size &gt; <span class="hljs-number">0</span>)
+    <span class="hljs-keyword">val</span> func2 = func.asInstanceOf[(<span class="hljs-type">TaskContext</span>, <span class="hljs-type">Iterator</span>[_]) =&gt; _]
+    <span class="hljs-comment">// 创建等待 Job 完成的 JobWaiter</span>
+    <span class="hljs-keyword">val</span> waiter = <span class="hljs-keyword">new</span> <span class="hljs-type">JobWaiter</span>(<span class="hljs-keyword">this</span>, jobId, partitions.size, resultHandler)
+    <span class="hljs-comment">// 向 DAGSchedulerEventProcessLoop 发送 JobSubmitted 事件</span>
+    eventProcessLoop.post(<span class="hljs-type">JobSubmitted</span>(
+      jobId, rdd, func2, partitions.toArray, callSite, waiter,
+      <span class="hljs-type">SerializationUtils</span>.clone(properties)))
+    waiter
+&#125;</code></pre></div><p>而 DAGSchedulerEventProcessLoop 会轮询 eventQueue 中的事件（event），再通过 onReceive方法接收事件，最终到达 DAGScheduler 中的 doOnReceive 方法匹配对应的事件进行处理。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">doOnReceive</span></span>(event: <span class="hljs-type">DAGSchedulerEvent</span>): <span class="hljs-type">Unit</span> = event <span class="hljs-keyword">match</span> &#123;
+    <span class="hljs-keyword">case</span> <span class="hljs-type">JobSubmitted</span>(jobId, rdd, func, partitions, callSite, listener, properties) =&gt;
+      dagScheduler.handleJobSubmitted(jobId, rdd, func, partitions, callSite, listener, properties)
+    <span class="hljs-comment">// 省略其他事件</span>
+&#125;</code></pre></div><p>创建 ResultStage 并处理这个过程中可能发生的异常（如依赖的 HDFS 文件被删除），创建 ActiveJob 并处理，向 LiveListenerBus 投递 SparkListenerJobStart 事件（引发监听器执行相应操作），其中最重要的是调用 submitStage 方法提交 ResultStage。</p><div class="hljs code-wrapper"><pre><code class="hljs java"><span class="hljs-keyword">private</span>[scheduler] def <span class="hljs-title function_">handleJobSubmitted</span><span class="hljs-params">(jobId: Int,</span>
+<span class="hljs-params">      finalRDD: RDD[_],</span>
+<span class="hljs-params">      func: (TaskContext, Iterator[_])</span> =&gt; _,
+      partitions: Array[Int],
+      callSite: CallSite,
+      listener: JobListener,
+      properties: Properties) &#123;
+    <span class="hljs-keyword">var</span> finalStage: ResultStage = <span class="hljs-literal">null</span>
+    <span class="hljs-keyword">try</span> &#123;
+      <span class="hljs-comment">// 创建 ResultStage</span>
+      finalStage = createResultStage(finalRDD, func, partitions, jobId, callSite)
+    &#125; <span class="hljs-keyword">catch</span> &#123;
+        <span class="hljs-comment">// 省略异常捕获代码</span>
+        <span class="hljs-keyword">return</span>
+    &#125;
+    barrierJobIdToNumTasksCheckFailures.remove(jobId)
+
+    <span class="hljs-comment">// 创建 ActiveJob</span>
+    <span class="hljs-type">val</span> <span class="hljs-variable">job</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ActiveJob</span>(jobId, finalStage, callSite, listener, properties)
+    clearCacheLocs()
+    logInfo(<span class="hljs-string">&quot;Got job %s (%s) with %d output partitions&quot;</span>.format(
+      job.jobId, callSite.shortForm, partitions.length))
+    logInfo(<span class="hljs-string">&quot;Final stage: &quot;</span> + finalStage + <span class="hljs-string">&quot; (&quot;</span> + finalStage.name + <span class="hljs-string">&quot;)&quot;</span>)
+    logInfo(<span class="hljs-string">&quot;Parents of final stage: &quot;</span> + finalStage.parents)
+    logInfo(<span class="hljs-string">&quot;Missing parents: &quot;</span> + getMissingParentStages(finalStage))
+
+    <span class="hljs-comment">// 生产 Job 的提交时间</span>
+    <span class="hljs-type">val</span> <span class="hljs-variable">jobSubmissionTime</span> <span class="hljs-operator">=</span> clock.getTimeMillis()
+    jobIdToActiveJob(jobId) = job
+    activeJobs += job
+    finalStage.setActiveJob(job)
+    <span class="hljs-type">val</span> <span class="hljs-variable">stageIds</span> <span class="hljs-operator">=</span> jobIdToStageIds(jobId).toArray
+    <span class="hljs-type">val</span> <span class="hljs-variable">stageInfos</span> <span class="hljs-operator">=</span> stageIds.flatMap(id =&gt; stageIdToStage.get(id).map(_.latestInfo))
+    listenerBus.post(
+      SparkListenerJobStart(job.jobId, jobSubmissionTime, stageInfos, properties))
+    <span class="hljs-comment">// 提交 ResultStage</span>
+    submitStage(finalStage)
+&#125;</code></pre></div><p>获取当前 Stage 的所有 ActiveJob 身份标识，如果有身份标识，但 Stage 未提交，则查看父 Stage。父 Stage 也未提交，那么调用 submitStage 逐个提交所有未提交的 Stage，父 Stage 已经提交，那么调用 submitMissingTasks 提交当前 Stage 未提交的 Task。如果没有身份标识，直接终止依赖于当前 Stage 的所有 Job。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">submitStage</span></span>(stage: <span class="hljs-type">Stage</span>) &#123;
+    <span class="hljs-comment">// 获取当前 Stage 对应的 Job 的 ID</span>
+    <span class="hljs-keyword">val</span> jobId = activeJobForStage(stage)
+    <span class="hljs-keyword">if</span> (jobId.isDefined) &#123;
+      logDebug(<span class="hljs-string">s&quot;submitStage(<span class="hljs-subst">$stage</span> (name=<span class="hljs-subst">$&#123;stage.name&#125;</span>;&quot;</span> +
+        <span class="hljs-string">s&quot;jobs=<span class="hljs-subst">$&#123;stage.jobIds.toSeq.sorted.mkString(&quot;,&quot;)&#125;</span>))&quot;</span>)
+      <span class="hljs-keyword">if</span> (!waitingStages(stage) &amp;&amp; !runningStages(stage) &amp;&amp; !failedStages(stage)) &#123;
+        <span class="hljs-comment">// 当前 Stage 未提交</span>
+        <span class="hljs-keyword">val</span> missing = getMissingParentStages(stage).sortBy(_.id)
+        logDebug(<span class="hljs-string">&quot;missing: &quot;</span> + missing)
+        <span class="hljs-comment">// 不存在未提交的父 Stage，那么提交当前 Stage 所有未提交的 Task</span>
+        <span class="hljs-keyword">if</span> (missing.isEmpty) &#123;
+          logInfo(<span class="hljs-string">&quot;Submitting &quot;</span> + stage + <span class="hljs-string">&quot; (&quot;</span> + stage.rdd + <span class="hljs-string">&quot;), which has no missing parents&quot;</span>)
+          submitMissingTasks(stage, jobId.get)
+        &#125; <span class="hljs-keyword">else</span> &#123;
+          <span class="hljs-comment">// 存在未提交的父 Stage，那么逐个提交它们</span>
+          <span class="hljs-keyword">for</span> (parent &lt;- missing) &#123;
+            submitStage(parent)
+          &#125;
+          waitingStages += stage
+        &#125;
+      &#125;
+    &#125; <span class="hljs-keyword">else</span> &#123; <span class="hljs-comment">// 终止依赖于当前 Stage 的所有 Job</span>
+      abortStage(stage, <span class="hljs-string">&quot;No active job for stage &quot;</span> + stage.id, <span class="hljs-type">None</span>)
+    &#125;
+&#125;</code></pre></div><p>此方法在 Stage 没有不可用的父 Stage 时，提交当前 Stage 还未提交的任务。</p><ol><li><p>调用 Stage 的 findMissingPartitions 方法，找出当前 Stage 的所有分区中还没有完成计算的分区的索引</p></li><li><p>获取 ActiveJob 的 properties。properties 包含了当前 Job 的调度、group、描述等属性信息</p></li><li><p>将当前 Stage 加入 runningStages 集合中，即当前 Stage 已经处于运行状态</p></li><li><p>调用 OutputCommitCoordinator 的 stageStart 方法，启动对当前 Stage 的输出提交到 HDFS 的协调</p></li><li><p>调用 DAGScheduler 的 getPreferredLocs 方法，获取 partitionsToCompute 中的每一个分区的偏好位置。如果发生异常，则调用 Stage 的 makeNewStageAttempt 方法开始一次新的 Stage 执行尝试，然后向 listenerBus 投递 SparkListenerStageSubmitted 事件</p></li><li><p>调用 Stage 的 makeNewStageAttempt 方法开始 Stage 的执行尝试，并向 listenerBus 投递 SparkListenerStageSubmitted 事件</p></li><li><p>如果当前 Stage 是 ShuffleMapStage，那么对 Stage 的 rdd 和 ShuffleDependency 进行序列化；如果当前 Stage 是 ResultStage，那么对 Stage 的 rdd 和对 RDD 的分区进行计算的函数 func 进行序列化</p></li><li><p>调用 SparkContext 的 broadcast 方法广播上一步生成的序列化对象</p></li><li><p>如果当前 Stage 是 ShuffleMapStage，则为 ShuffleMapStage 的每一个分区创建一个 ShuffleMapTask。如果当前 Stage 是 ResultStage，则为 ResultStage 的每一个分区创建一个 ResultTask。</p></li><li><p>如果第 9 步中创建了至少一个 Task，那么为这批 Task 创建 TaskSet（即任务集合），并调用 TaskScheduler 的 submitTasks 方法提交此批 Task</p></li><li><p>如果第 10 步没有创建任何 Task，这意味着当前 Stage 没有 Task 任务需要提交执行，因此调用 DAGScheduler 的 markStageAsFinished 方法，将当前 Stage 标记为完成。然后调用 submitWaitingChildStages 方法，提交当前 Stage 的子 Stage。</p></li></ol><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">submitMissingTasks</span></span>(stage: <span class="hljs-type">Stage</span>, jobId: <span class="hljs-type">Int</span>) &#123;
+    logDebug(<span class="hljs-string">&quot;submitMissingTasks(&quot;</span> + stage + <span class="hljs-string">&quot;)&quot;</span>)
+
+    <span class="hljs-comment">// 找出当前 Stage 的所有分区中还没有完成计算的分区的索引</span>
+    <span class="hljs-keyword">val</span> partitionsToCompute: <span class="hljs-type">Seq</span>[<span class="hljs-type">Int</span>] = stage.findMissingPartitions()
+
+    <span class="hljs-comment">// 获取 ActiveJob 的 properties。properties 包含了当前 Job 的调度、group、描述等属性信息</span>
+    <span class="hljs-keyword">val</span> properties = jobIdToActiveJob(jobId).properties
+
+    runningStages += stage
+    <span class="hljs-comment">// 启动对当前 Stage 的输出提交到 HDFS 的协调</span>
+    stage <span class="hljs-keyword">match</span> &#123;
+      <span class="hljs-keyword">case</span> s: <span class="hljs-type">ShuffleMapStage</span> =&gt;
+        outputCommitCoordinator.stageStart(stage = s.id, maxPartitionId = s.numPartitions - <span class="hljs-number">1</span>)
+      <span class="hljs-keyword">case</span> s: <span class="hljs-type">ResultStage</span> =&gt;
+        outputCommitCoordinator.stageStart(
+          stage = s.id, maxPartitionId = s.rdd.partitions.length - <span class="hljs-number">1</span>)
+    &#125;
+    <span class="hljs-keyword">val</span> taskIdToLocations: <span class="hljs-type">Map</span>[<span class="hljs-type">Int</span>, <span class="hljs-type">Seq</span>[<span class="hljs-type">TaskLocation</span>]] = <span class="hljs-keyword">try</span> &#123;
+      <span class="hljs-comment">// 获取还没有完成计算的每一个分区的偏好位置</span>
+      stage <span class="hljs-keyword">match</span> &#123;
+        <span class="hljs-keyword">case</span> s: <span class="hljs-type">ShuffleMapStage</span> =&gt;
+          partitionsToCompute.map &#123; id =&gt; (id, getPreferredLocs(stage.rdd, id))&#125;.toMap
+        <span class="hljs-keyword">case</span> s: <span class="hljs-type">ResultStage</span> =&gt;
+          partitionsToCompute.map &#123; id =&gt;
+            <span class="hljs-keyword">val</span> p = s.partitions(id)
+            (id, getPreferredLocs(stage.rdd, p))
+          &#125;.toMap
+      &#125;
+    &#125; <span class="hljs-keyword">catch</span> &#123;
+      <span class="hljs-comment">// 如果发生任何异常，则调用 Stage 的 makeNewStageAttempt 方法开始一次新的 Stage 执行尝试</span>
+      <span class="hljs-keyword">case</span> <span class="hljs-type">NonFatal</span>(e) =&gt;
+        stage.makeNewStageAttempt(partitionsToCompute.size)
+        listenerBus.post(<span class="hljs-type">SparkListenerStageSubmitted</span>(stage.latestInfo, properties))
+        abortStage(stage, <span class="hljs-string">s&quot;Task creation failed: <span class="hljs-subst">$e</span>\n<span class="hljs-subst">$&#123;Utils.exceptionString(e)&#125;</span>&quot;</span>, <span class="hljs-type">Some</span>(e))
+        runningStages -= stage
+        <span class="hljs-keyword">return</span>
+    &#125;
+
+    <span class="hljs-comment">// 开始 Stage 的执行尝试</span>
+    stage.makeNewStageAttempt(partitionsToCompute.size, taskIdToLocations.values.toSeq)
+
+    <span class="hljs-keyword">if</span> (partitionsToCompute.nonEmpty) &#123;
+      stage.latestInfo.submissionTime = <span class="hljs-type">Some</span>(clock.getTimeMillis())
+    &#125;
+    listenerBus.post(<span class="hljs-type">SparkListenerStageSubmitted</span>(stage.latestInfo, properties))
+
+    <span class="hljs-keyword">var</span> taskBinary: <span class="hljs-type">Broadcast</span>[<span class="hljs-type">Array</span>[<span class="hljs-type">Byte</span>]] = <span class="hljs-literal">null</span>
+    <span class="hljs-keyword">var</span> partitions: <span class="hljs-type">Array</span>[<span class="hljs-type">Partition</span>] = <span class="hljs-literal">null</span>
+    <span class="hljs-keyword">try</span> &#123;
+      <span class="hljs-comment">// 对于 ShuffleMapTask，进行序列化和广播 (rdd, shuffleDep).</span>
+      <span class="hljs-comment">// 对于 ResultTask，进行序列化和广播 (rdd, func).</span>
+      <span class="hljs-keyword">var</span> taskBinaryBytes: <span class="hljs-type">Array</span>[<span class="hljs-type">Byte</span>] = <span class="hljs-literal">null</span>
+      <span class="hljs-comment">// taskBinaryBytes 和分区都受检查点状态影响，如果另一个并发 Job 正在为此 RDD 设置检查点，则需要进行同步</span>
+      <span class="hljs-type">RDDCheckpointData</span>.synchronized &#123;
+        taskBinaryBytes = stage <span class="hljs-keyword">match</span> &#123;
+          <span class="hljs-keyword">case</span> stage: <span class="hljs-type">ShuffleMapStage</span> =&gt;
+            <span class="hljs-type">JavaUtils</span>.bufferToArray(
+              closureSerializer.serialize((stage.rdd, stage.shuffleDep): <span class="hljs-type">AnyRef</span>))
+          <span class="hljs-keyword">case</span> stage: <span class="hljs-type">ResultStage</span> =&gt;
+            <span class="hljs-type">JavaUtils</span>.bufferToArray(closureSerializer.serialize((stage.rdd, stage.func): <span class="hljs-type">AnyRef</span>))
+        &#125;
+
+        partitions = stage.rdd.partitions
+      &#125;
+
+      <span class="hljs-comment">// 广播任务的序列化对象</span>
+      taskBinary = sc.broadcast(taskBinaryBytes)
+    &#125; <span class="hljs-keyword">catch</span> &#123;
+      <span class="hljs-comment">// 如果序列化失败，终止该 Stage</span>
+      <span class="hljs-keyword">case</span> e: <span class="hljs-type">NotSerializableException</span> =&gt;
+        abortStage(stage, <span class="hljs-string">&quot;Task not serializable: &quot;</span> + e.toString, <span class="hljs-type">Some</span>(e))
+        runningStages -= stage
+
+        <span class="hljs-comment">// 终止异常</span>
+        <span class="hljs-keyword">return</span>
+      <span class="hljs-keyword">case</span> e: <span class="hljs-type">Throwable</span> =&gt;
+        abortStage(stage, <span class="hljs-string">s&quot;Task serialization failed: <span class="hljs-subst">$e</span>\n<span class="hljs-subst">$&#123;Utils.exceptionString(e)&#125;</span>&quot;</span>, <span class="hljs-type">Some</span>(e))
+        runningStages -= stage
+
+        <span class="hljs-comment">// 终止异常</span>
+        <span class="hljs-keyword">return</span>
+    &#125;
+
+    <span class="hljs-keyword">val</span> tasks: <span class="hljs-type">Seq</span>[<span class="hljs-type">Task</span>[_]] = <span class="hljs-keyword">try</span> &#123;
+      <span class="hljs-keyword">val</span> serializedTaskMetrics = closureSerializer.serialize(stage.latestInfo.taskMetrics).array()
+      stage <span class="hljs-keyword">match</span> &#123;
+        <span class="hljs-comment">// 为 ShuffleMapStage 的每一个分区创建一个 ShuffleMapTask</span>
+        <span class="hljs-keyword">case</span> stage: <span class="hljs-type">ShuffleMapStage</span> =&gt; 
+          stage.pendingPartitions.clear()
+          partitionsToCompute.map &#123; id =&gt;
+            <span class="hljs-keyword">val</span> locs = taskIdToLocations(id)
+            <span class="hljs-keyword">val</span> part = partitions(id)
+            stage.pendingPartitions += id
+            <span class="hljs-keyword">new</span> <span class="hljs-type">ShuffleMapTask</span>(stage.id, stage.latestInfo.attemptNumber,
+              taskBinary, part, locs, properties, serializedTaskMetrics, <span class="hljs-type">Option</span>(jobId),
+              <span class="hljs-type">Option</span>(sc.applicationId), sc.applicationAttemptId, stage.rdd.isBarrier())
+          &#125;
+
+        <span class="hljs-comment">// 为 ResultStage 的每一个分区创建一个 ResultTask</span>
+        <span class="hljs-keyword">case</span> stage: <span class="hljs-type">ResultStage</span> =&gt; 
+          partitionsToCompute.map &#123; id =&gt;
+            <span class="hljs-keyword">val</span> p: <span class="hljs-type">Int</span> = stage.partitions(id)
+            <span class="hljs-keyword">val</span> part = partitions(p)
+            <span class="hljs-keyword">val</span> locs = taskIdToLocations(id)
+            <span class="hljs-keyword">new</span> <span class="hljs-type">ResultTask</span>(stage.id, stage.latestInfo.attemptNumber,
+              taskBinary, part, locs, id, properties, serializedTaskMetrics,
+              <span class="hljs-type">Option</span>(jobId), <span class="hljs-type">Option</span>(sc.applicationId), sc.applicationAttemptId,
+              stage.rdd.isBarrier())
+          &#125;
+      &#125;
+    &#125; <span class="hljs-keyword">catch</span> &#123;
+      <span class="hljs-keyword">case</span> <span class="hljs-type">NonFatal</span>(e) =&gt;
+        abortStage(stage, <span class="hljs-string">s&quot;Task creation failed: <span class="hljs-subst">$e</span>\n<span class="hljs-subst">$&#123;Utils.exceptionString(e)&#125;</span>&quot;</span>, <span class="hljs-type">Some</span>(e))
+        runningStages -= stage
+        <span class="hljs-keyword">return</span>
+    &#125;
+
+    <span class="hljs-comment">// 调用 TaskScheduler 的 submitTasks 方法提交此批 Task</span>
+    <span class="hljs-keyword">if</span> (tasks.size &gt; <span class="hljs-number">0</span>) &#123;
+      logInfo(<span class="hljs-string">s&quot;Submitting <span class="hljs-subst">$&#123;tasks.size&#125;</span> missing tasks from <span class="hljs-subst">$stage</span> (<span class="hljs-subst">$&#123;stage.rdd&#125;</span>) (first 15 &quot;</span> +
+        <span class="hljs-string">s&quot;tasks are for partitions <span class="hljs-subst">$&#123;tasks.take(15).map(_.partitionId)&#125;</span>)&quot;</span>)
+      taskScheduler.submitTasks(<span class="hljs-keyword">new</span> <span class="hljs-type">TaskSet</span>(
+        tasks.toArray, stage.id, stage.latestInfo.attemptNumber, jobId, properties))
+    &#125; <span class="hljs-keyword">else</span> &#123;
+      <span class="hljs-comment">// 没有创建任何 Task，将当前 Stage 标记为完成</span>
+      markStageAsFinished(stage, <span class="hljs-type">None</span>)
+
+      stage <span class="hljs-keyword">match</span> &#123;
+        <span class="hljs-keyword">case</span> stage: <span class="hljs-type">ShuffleMapStage</span> =&gt;
+          logDebug(<span class="hljs-string">s&quot;Stage <span class="hljs-subst">$&#123;stage&#125;</span> is actually done; &quot;</span> +
+              <span class="hljs-string">s&quot;(available: <span class="hljs-subst">$&#123;stage.isAvailable&#125;</span>,&quot;</span> +
+              <span class="hljs-string">s&quot;available outputs: <span class="hljs-subst">$&#123;stage.numAvailableOutputs&#125;</span>,&quot;</span> +
+              <span class="hljs-string">s&quot;partitions: <span class="hljs-subst">$&#123;stage.numPartitions&#125;</span>)&quot;</span>)
+          markMapStageJobsAsFinished(stage)
+        <span class="hljs-keyword">case</span> stage : <span class="hljs-type">ResultStage</span> =&gt;
+          logDebug(<span class="hljs-string">s&quot;Stage <span class="hljs-subst">$&#123;stage&#125;</span> is actually done; (partitions: <span class="hljs-subst">$&#123;stage.numPartitions&#125;</span>)&quot;</span>)
+      &#125;
+      submitWaitingChildStages(stage)
+    &#125;
+&#125;</code></pre></div><p>DAGScheduler 将 Stage 中各个分区的 Task 封装为 TaskSet 后，会将 TaskSet 交给 TaskSchedulerImpl 处理，此方法是这一过程的入口。</p><ol><li><p>获取 TaskSet 中的所有 Task。</p></li><li><p>调用 createTaskSetManager 方法创建 TaskSetManager</p></li><li><p>在 taskSetsByStageIdAndAttempt 中设置 TaskSet 关联的 Stage、Stage 尝试及刚创建的 TaskSetManager 之间的三级映射关系。</p></li><li><p>对当前 TaskSet 进行冲突检测，即 taskSetsByStageIdAndAttempt 中不应该存在同属于当前 Stage，但是 TaskSet 却不相同的情况。</p></li><li><p>调用调度池构建器的 addTaskSetManager 方法，将刚创建的 TaskSetManager 添加到调度池构建器的调度池中。</p></li><li><p>如果当前应用程序不是 Local 模式并且 TaskSchedulerImpl 还没有接收到 Task，那么设置一个定时器按照 STARVATION_TIMEOUT_MS 指定的时间间隔检查 TaskScheduleImpl 的饥饿状况，当 TaskScheduleImpl 已经运行 Task 后，取消此定时器</p></li><li><p>将 hasReceivedTask 设置为 tue，以表示 TaskSchedulerImpl 已经接收到 Task</p></li><li><p>调用 SchedulerBackend 的 reviveOffers 方法给 Task 分配资源并运行 Task</p></li></ol><div class="note note-light"><p>local 模式（其他模式也类似）</p><ol><li><p>在提交的最后会调用 LocalSchedulerBackend 的 reviveOffers 方法</p></li><li><p>LocalSchedulerBackend 的 reviveOffers 方法只是向 LocalEndpoint 发送 ReviveOffers 消息</p></li><li><p>LocalEndpoint 收到 ReviveOffers 消息后，调用 TaskSchedulerImpl 的 resourceOffers 方法申请资源，TaskSchedulerImpl 将根据任务申请的 CPU 核数、内存、本地化等条件为其分配资源</p></li></ol></div><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">submitTasks</span></span>(taskSet: <span class="hljs-type">TaskSet</span>) &#123;
+    <span class="hljs-comment">// 获取 TaskSet 中的所有 Task</span>
+    <span class="hljs-keyword">val</span> tasks = taskSet.tasks
+    logInfo(<span class="hljs-string">&quot;Adding task set &quot;</span> + taskSet.id + <span class="hljs-string">&quot; with &quot;</span> + tasks.length + <span class="hljs-string">&quot; tasks&quot;</span>)
+    <span class="hljs-keyword">this</span>.synchronized &#123;
+      <span class="hljs-keyword">val</span> manager = createTaskSetManager(taskSet, maxTaskFailures)
+      <span class="hljs-keyword">val</span> stage = taskSet.stageId
+      <span class="hljs-keyword">val</span> stageTaskSets =
+        taskSetsByStageIdAndAttempt.getOrElseUpdate(stage, <span class="hljs-keyword">new</span> <span class="hljs-type">HashMap</span>[<span class="hljs-type">Int</span>, <span class="hljs-type">TaskSetManager</span>])
+
+      <span class="hljs-comment">// 将所有现有 TaskSetManager 标记为僵尸（当 TaskSetManager 所管理的 TaskSet 中所有 Task 都执行成功了，不再有更多的 Task 尝试被启动时，就处于“僵尸”状态）</span>
+      stageTaskSets.foreach &#123; <span class="hljs-keyword">case</span> (_, ts) =&gt;
+        ts.isZombie = <span class="hljs-literal">true</span>
+      &#125;
+      stageTaskSets(taskSet.stageAttemptId) = manager
+      schedulableBuilder.addTaskSetManager(manager, manager.taskSet.properties)
+
+      <span class="hljs-comment">// 设置检查 TaskSchedulerImpl 的饥饿状况的定时器</span>
+      <span class="hljs-keyword">if</span> (!isLocal &amp;&amp; !hasReceivedTask) &#123;
+        starvationTimer.scheduleAtFixedRate(<span class="hljs-keyword">new</span> <span class="hljs-type">TimerTask</span>() &#123;
+          <span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">run</span></span>() &#123;
+            <span class="hljs-keyword">if</span> (!hasLaunchedTask) &#123;
+              logWarning(<span class="hljs-string">&quot;Initial job has not accepted any resources; &quot;</span> +
+                <span class="hljs-string">&quot;check your cluster UI to ensure that workers are registered &quot;</span> +
+                <span class="hljs-string">&quot;and have sufficient resources&quot;</span>)
+            &#125; <span class="hljs-keyword">else</span> &#123;
+              <span class="hljs-keyword">this</span>.cancel()
+            &#125;
+          &#125;
+        &#125;, <span class="hljs-type">STARVATION_TIMEOUT_MS</span>, <span class="hljs-type">STARVATION_TIMEOUT_MS</span>)
+      &#125;
+      <span class="hljs-comment">// 表示 TaskSchedulerImpl 已经接收到 Task</span>
+      hasReceivedTask = <span class="hljs-literal">true</span>
+    &#125;
+    <span class="hljs-comment">// 给 Task 分配资源并运行 Task</span>
+    backend.reviveOffers()
+&#125;</code></pre></div><p>上述代码中会向 SchedulableBuilder 添加 TaskSetManager，这个 SchedulableBuilder 定义的是调度池构建器的行为规范，针对 FIFO 和 FAIR 两种调度算法，默认调用实现 FIFOSchedulableBuilder。然后向根调度池中添加 TaskSetManager。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">addTaskSetManager</span></span>(manager: <span class="hljs-type">Schedulable</span>, properties: <span class="hljs-type">Properties</span>) &#123;
+    rootPool.addSchedulable(manager)
+&#125;</code></pre></div><p>将 Schedulable 添加到 schedulableQueue 和 schedulableNameToSchedulable 中，并将 Schedulable 的父亲设置为当前 Pool。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-keyword">override</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">addSchedulable</span></span>(schedulable: <span class="hljs-type">Schedulable</span>) &#123;
+    require(schedulable != <span class="hljs-literal">null</span>)
+    schedulableQueue.add(schedulable)
+    schedulableNameToSchedulable.put(schedulable.name, schedulable)
+    schedulable.parent = <span class="hljs-keyword">this</span>
+&#125;</code></pre></div><p>继续上文，通过 SchedulerBackend 给调度池中的所有 Task 分配资源。在 CoarseGrainedSchedulerBackend 中通过 driverEndpoint 发送 ReviveOffers 消息，在接收到消息后，继续进行处理。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">makeOffers</span></span>() &#123;
+      <span class="hljs-comment">// 确保在有 Task 运行的时候没有杀死 Executor</span>
+      <span class="hljs-keyword">val</span> taskDescs = withLock &#123;
+        <span class="hljs-comment">// 过滤掉被杀的 Executor</span>
+        <span class="hljs-keyword">val</span> activeExecutors = executorDataMap.filterKeys(executorIsAlive)
+        <span class="hljs-keyword">val</span> workOffers = activeExecutors.map &#123;
+          <span class="hljs-keyword">case</span> (id, executorData) =&gt;
+            <span class="hljs-keyword">new</span> <span class="hljs-type">WorkerOffer</span>(id, executorData.executorHost, executorData.freeCores,
+              <span class="hljs-type">Some</span>(executorData.executorAddress.hostPort))
+        &#125;.toIndexedSeq
+        <span class="hljs-comment">// 接收资源消息</span>
+        scheduler.resourceOffers(workOffers)
+      &#125;
+      <span class="hljs-keyword">if</span> (!taskDescs.isEmpty) &#123;
+        <span class="hljs-comment">// 启动 Task</span>
+        launchTasks(taskDescs)
+      &#125;
+&#125;</code></pre></div><p>给 Task 分配资源：</p><ol><li><p>遍历 WorkerOffer 序列，对每一个 WorkerOffer 执行以下操作：</p><ul><li><p>更新 Host 与 Executor 的各种映射关系。</p></li><li><p>调用 TaskSchedulerImpl 的 executorAdded 方法（此方法实际仅仅调用了 DagScheduler 的 executorAdded 方法）向 DagScheduler 的 DagSchedulerEventProcessLoop 投递 ExecutorAdded 事件。</p></li><li><p>标记添加了新的 Executor（即将 newExecAvail 设置为 true）</p></li><li><p>更新 Host 与机架之间的关系</p></li></ul></li><li><p>对所有 WorkerOffer 随机洗牌，避免将任务总是分配给同样一组 Worker</p></li><li><p>根据每个 WorkerOffer 的可用的 CPU 核数创建同等尺寸的任务描述（TaskDescription）数组</p></li><li><p>将每个 WorkerOffer 的可用的 CPU 核数统计到可用 CPU (availableCpus）数组中</p></li><li><p>调用 rootPool 的 getSortedTaskSetQueue 方法，对 rootPool 中的所有 TaskSetManager 按照调度算法排序</p></li><li><p>如果 newExecAvail 为 true，那么调用每个 TaskSetManager 的 executorAdded 方法。此 executorAdded 方法实际调用了 computeValidLocalityLevels 方法重新计算 TaskSet 的本地性</p></li><li><p>遍历 TaskSetManager，按照最大本地性的原则（即从高本地性级别到低本地性级别调用 resourceOfferSingleTaskSet，给单个 TaskSet 中的 Task 提供资源。如果在任何 TaskSet 所允许的本地性级别下，TaskSet 中没有任何一个任务获得了资源，那么将调用 TaskSetManager 的 abortSinceCompletelyBlacklisted 方法，放弃在黑名单中的 Task</p></li><li><p>返回生成的 TaskDescription 列表，即已经获得了资源的任务列表</p></li></ol><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">resourceOffers</span></span>(offers: <span class="hljs-type">IndexedSeq</span>[<span class="hljs-type">WorkerOffer</span>]): <span class="hljs-type">Seq</span>[<span class="hljs-type">Seq</span>[<span class="hljs-type">TaskDescription</span>]] = synchronized &#123;
+    <span class="hljs-comment">// 将每个 slave 标记为活动的，记录其主机名，并追踪是否添加了新的 Executor</span>
+    <span class="hljs-keyword">var</span> newExecAvail = <span class="hljs-literal">false</span>
+    <span class="hljs-keyword">for</span> (o &lt;- offers) &#123;
+      <span class="hljs-keyword">if</span> (!hostToExecutors.contains(o.host)) &#123;
+        hostToExecutors(o.host) = <span class="hljs-keyword">new</span> <span class="hljs-type">HashSet</span>[<span class="hljs-type">String</span>]()
+      &#125;
+      <span class="hljs-comment">// 更新 Host 与 Executor 的各种映射关系</span>
+      <span class="hljs-keyword">if</span> (!executorIdToRunningTaskIds.contains(o.executorId)) &#123;
+        hostToExecutors(o.host) += o.executorId
+        executorAdded(o.executorId, o.host)
+        executorIdToHost(o.executorId) = o.host
+        executorIdToRunningTaskIds(o.executorId) = <span class="hljs-type">HashSet</span>[<span class="hljs-type">Long</span>]()
+        <span class="hljs-comment">// 标记添加了新的 Executor</span>
+        newExecAvail = <span class="hljs-literal">true</span>
+      &#125;
+      <span class="hljs-comment">// 更新 Host 与机架之间的关系</span>
+      <span class="hljs-keyword">for</span> (rack &lt;- getRackForHost(o.host)) &#123;
+        hostsByRack.getOrElseUpdate(rack, <span class="hljs-keyword">new</span> <span class="hljs-type">HashSet</span>[<span class="hljs-type">String</span>]()) += o.host
+      &#125;
+    &#125;
+
+    <span class="hljs-comment">// 提供资源之前，从黑名单中删除过期节点，在这里操作是为了避免使用单独的线程增加开销，也因为只有在提供资源时才需要更新黑名单</span>
+    blacklistTrackerOpt.foreach(_.applyBlacklistTimeout())
+
+    <span class="hljs-keyword">val</span> filteredOffers = blacklistTrackerOpt.map &#123; blacklistTracker =&gt;
+      offers.filter &#123; offer =&gt;
+        !blacklistTracker.isNodeBlacklisted(offer.host) &amp;&amp;
+          !blacklistTracker.isExecutorBlacklisted(offer.executorId)
+      &#125;
+    &#125;.getOrElse(offers)
+
+    <span class="hljs-comment">// 随机 shuffle，避免将任务总是分配给同样一组 Worker</span>
+    <span class="hljs-keyword">val</span> shuffledOffers = shuffleOffers(filteredOffers)
+    <span class="hljs-comment">// 建立分配给每个 Worker 的任务列表</span>
+    <span class="hljs-keyword">val</span> tasks = shuffledOffers.map(o =&gt; <span class="hljs-keyword">new</span> <span class="hljs-type">ArrayBuffer</span>[<span class="hljs-type">TaskDescription</span>](o.cores / <span class="hljs-type">CPUS_PER_TASK</span>))
+    <span class="hljs-comment">// 统计每个 Worker 的可用 CPU 核数</span>
+    <span class="hljs-keyword">val</span> availableCpus = shuffledOffers.map(o =&gt; o.cores).toArray
+
+
+    <span class="hljs-comment">// 所有 TaskSetManager 按照调度算法排序</span>
+    <span class="hljs-keyword">val</span> sortedTaskSets = rootPool.getSortedTaskSetQueue
+    <span class="hljs-keyword">for</span> (taskSet &lt;- sortedTaskSets) &#123;
+      logDebug(<span class="hljs-string">&quot;parentName: %s, name: %s, runningTasks: %s&quot;</span>.format(
+        taskSet.parent.name, taskSet.name, taskSet.runningTasks))
+      <span class="hljs-keyword">if</span> (newExecAvail) &#123;
+        <span class="hljs-comment">// 重新计算 TaskSet 的本地性</span>
+        taskSet.executorAdded()
+      &#125;
+    &#125;
+
+    <span class="hljs-comment">// 按照调度算法顺序获取 TaskSet，然后按照数据的本地性级别升序提供给每个节点，以便在所有节点上启动本地任务。所有的本地性级别顺序: PROCESS_LOCAL, NODE_LOCAL, NO_PREF, RACK_LOCAL, ANY</span>
+    <span class="hljs-keyword">for</span> (taskSet &lt;- sortedTaskSets) &#123;
+      <span class="hljs-keyword">val</span> availableSlots = availableCpus.map(c =&gt; c / <span class="hljs-type">CPUS_PER_TASK</span>).sum
+      <span class="hljs-comment">// 如果可获得的资源数少于挂起的任务数，那么跳过有障碍的 TaskSet</span>
+      <span class="hljs-keyword">if</span> (taskSet.isBarrier &amp;&amp; availableSlots &lt; taskSet.numTasks) &#123;
+        logInfo(<span class="hljs-string">s&quot;Skip current round of resource offers for barrier stage <span class="hljs-subst">$&#123;taskSet.stageId&#125;</span> &quot;</span> +
+          <span class="hljs-string">s&quot;because the barrier taskSet requires <span class="hljs-subst">$&#123;taskSet.numTasks&#125;</span> slots, while the total &quot;</span> +
+          <span class="hljs-string">s&quot;number of available slots is <span class="hljs-subst">$availableSlots</span>.&quot;</span>)
+      &#125; <span class="hljs-keyword">else</span> &#123;
+        <span class="hljs-keyword">var</span> launchedAnyTask = <span class="hljs-literal">false</span>
+        <span class="hljs-comment">// 记录有障碍的 Task 所在的 Executor ID</span>
+        <span class="hljs-keyword">val</span> addressesWithDescs = <span class="hljs-type">ArrayBuffer</span>[(<span class="hljs-type">String</span>, <span class="hljs-type">TaskDescription</span>)]()
+        <span class="hljs-comment">// 按照最大本地性的原则，给 Task 提供资源</span>
+        <span class="hljs-keyword">for</span> (currentMaxLocality &lt;- taskSet.myLocalityLevels) &#123;
+          <span class="hljs-keyword">var</span> launchedTaskAtCurrentMaxLocality = <span class="hljs-literal">false</span>
+          <span class="hljs-keyword">do</span> &#123;
+            <span class="hljs-comment">// 给单个 TaskSet 中的 Task 提供资源</span>
+            launchedTaskAtCurrentMaxLocality = resourceOfferSingleTaskSet(taskSet,
+              currentMaxLocality, shuffledOffers, availableCpus, tasks, addressesWithDescs)
+            launchedAnyTask |= launchedTaskAtCurrentMaxLocality
+          &#125; <span class="hljs-keyword">while</span> (launchedTaskAtCurrentMaxLocality)
+        &#125;
+
+        <span class="hljs-keyword">if</span> (!launchedAnyTask) &#123;
+          taskSet.getCompletelyBlacklistedTaskIfAny(hostToExecutors).foreach &#123; taskIndex =&gt;
+              executorIdToRunningTaskIds.find(x =&gt; !isExecutorBusy(x._1)) <span class="hljs-keyword">match</span> &#123;
+                <span class="hljs-keyword">case</span> <span class="hljs-type">Some</span> ((executorId, _)) =&gt;
+                  <span class="hljs-keyword">if</span> (!unschedulableTaskSetToExpiryTime.contains(taskSet)) &#123;
+                    blacklistTrackerOpt.foreach(blt =&gt; blt.killBlacklistedIdleExecutor(executorId))
+
+                    <span class="hljs-keyword">val</span> timeout = conf.get(config.<span class="hljs-type">UNSCHEDULABLE_TASKSET_TIMEOUT</span>) * <span class="hljs-number">1000</span>
+                    unschedulableTaskSetToExpiryTime(taskSet) = clock.getTimeMillis() + timeout
+                    logInfo(<span class="hljs-string">s&quot;Waiting for <span class="hljs-subst">$timeout</span> ms for completely &quot;</span>
+                      + <span class="hljs-string">s&quot;blacklisted task to be schedulable again before aborting <span class="hljs-subst">$taskSet</span>.&quot;</span>)
+                    abortTimer.schedule(
+                      createUnschedulableTaskSetAbortTimer(taskSet, taskIndex), timeout)
+                  &#125;
+                <span class="hljs-keyword">case</span> <span class="hljs-type">None</span> =&gt; <span class="hljs-comment">// 立即终止</span>
+                  logInfo(<span class="hljs-string">&quot;Cannot schedule any task because of complete blacklisting. No idle&quot;</span> +
+                    <span class="hljs-string">s&quot; executors can be found to kill. Aborting <span class="hljs-subst">$taskSet</span>.&quot;</span> )
+                  taskSet.abortSinceCompletelyBlacklisted(taskIndex)
+              &#125;
+          &#125;
+        &#125; <span class="hljs-keyword">else</span> &#123;
+          <span class="hljs-keyword">if</span> (unschedulableTaskSetToExpiryTime.nonEmpty) &#123;
+            logInfo(<span class="hljs-string">&quot;Clearing the expiry times for all unschedulable taskSets as a task was &quot;</span> +
+              <span class="hljs-string">&quot;recently scheduled.&quot;</span>)
+            unschedulableTaskSetToExpiryTime.clear()
+          &#125;
+        &#125;
+
+        <span class="hljs-keyword">if</span> (launchedAnyTask &amp;&amp; taskSet.isBarrier) &#123;
+          <span class="hljs-comment">// 检查有障碍的 task 是否部分启动</span>
+          require(addressesWithDescs.size == taskSet.numTasks,
+            <span class="hljs-string">s&quot;Skip current round of resource offers for barrier stage <span class="hljs-subst">$&#123;taskSet.stageId&#125;</span> &quot;</span> +
+              <span class="hljs-string">s&quot;because only <span class="hljs-subst">$&#123;addressesWithDescs.size&#125;</span> out of a total number of &quot;</span> +
+              <span class="hljs-string">s&quot;<span class="hljs-subst">$&#123;taskSet.numTasks&#125;</span> tasks got resource offers. The resource offers may have &quot;</span> +
+              <span class="hljs-string">&quot;been blacklisted or cannot fulfill task locality requirements.&quot;</span>)
+
+          maybeInitBarrierCoordinator()
+
+          <span class="hljs-keyword">val</span> addressesStr = addressesWithDescs
+            <span class="hljs-comment">// Addresses ordered by partitionId</span>
+            .sortBy(_._2.partitionId)
+            .map(_._1)
+            .mkString(<span class="hljs-string">&quot;,&quot;</span>)
+          addressesWithDescs.foreach(_._2.properties.setProperty(<span class="hljs-string">&quot;addresses&quot;</span>, addressesStr))
+
+          logInfo(<span class="hljs-string">s&quot;Successfully scheduled all the <span class="hljs-subst">$&#123;addressesWithDescs.size&#125;</span> tasks for barrier &quot;</span> +
+            <span class="hljs-string">s&quot;stage <span class="hljs-subst">$&#123;taskSet.stageId&#125;</span>.&quot;</span>)
+        &#125;
+      &#125;
+    &#125;
+    <span class="hljs-keyword">if</span> (tasks.size &gt; <span class="hljs-number">0</span>) &#123;
+      hasLaunchedTask = <span class="hljs-literal">true</span>
+    &#125;
+    <span class="hljs-comment">// 返回已经获得了资源的任务列表</span>
+    <span class="hljs-keyword">return</span> tasks
+&#125;</code></pre></div><p>上述中的 resourceOfferSingleTaskSet 方法给单个 TaskSet 提供资源，获取 WorkerOffer 相关信息并给符合条件的 Task 创建 TaskDescription 以分配资源。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">resourceOfferSingleTaskSet</span></span>(
+      taskSet: <span class="hljs-type">TaskSetManager</span>,
+      maxLocality: <span class="hljs-type">TaskLocality</span>,
+      shuffledOffers: <span class="hljs-type">Seq</span>[<span class="hljs-type">WorkerOffer</span>],
+      availableCpus: <span class="hljs-type">Array</span>[<span class="hljs-type">Int</span>],
+      tasks: <span class="hljs-type">IndexedSeq</span>[<span class="hljs-type">ArrayBuffer</span>[<span class="hljs-type">TaskDescription</span>]],
+      addressesWithDescs: <span class="hljs-type">ArrayBuffer</span>[(<span class="hljs-type">String</span>, <span class="hljs-type">TaskDescription</span>)]) : <span class="hljs-type">Boolean</span> = &#123;
+    <span class="hljs-keyword">var</span> launchedTask = <span class="hljs-literal">false</span>
+    <span class="hljs-comment">// 到目前为止，整个应用程序中列入黑名单的节点和 Executor 已被滤除</span>
+    <span class="hljs-keyword">for</span> (i &lt;- <span class="hljs-number">0</span> until shuffledOffers.size) &#123;
+      <span class="hljs-keyword">val</span> execId = shuffledOffers(i).executorId
+      <span class="hljs-keyword">val</span> host = shuffledOffers(i).host
+      <span class="hljs-keyword">if</span> (availableCpus(i) &gt;= <span class="hljs-type">CPUS_PER_TASK</span>) &#123;
+        <span class="hljs-keyword">try</span> &#123;
+          <span class="hljs-comment">// 给符合条件的待处理 Task 创建 TaskDescription</span>
+          <span class="hljs-keyword">for</span> (task &lt;- taskSet.resourceOffer(execId, host, maxLocality)) &#123;
+            tasks(i) += task
+            <span class="hljs-keyword">val</span> tid = task.taskId
+            taskIdToTaskSetManager.put(tid, taskSet)
+            taskIdToExecutorId(tid) = execId
+            executorIdToRunningTaskIds(execId).add(tid)
+            availableCpus(i) -= <span class="hljs-type">CPUS_PER_TASK</span>
+            assert(availableCpus(i) &gt;= <span class="hljs-number">0</span>)
+            <span class="hljs-keyword">if</span> (taskSet.isBarrier) &#123;
+              addressesWithDescs += (shuffledOffers(i).address.get -&gt; task)
+            &#125;
+            launchedTask = <span class="hljs-literal">true</span>
+          &#125;
+        &#125; <span class="hljs-keyword">catch</span> &#123;
+          <span class="hljs-keyword">case</span> e: <span class="hljs-type">TaskNotSerializableException</span> =&gt;
+            logError(<span class="hljs-string">s&quot;Resource offer failed, task set <span class="hljs-subst">$&#123;taskSet.name&#125;</span> was not serializable&quot;</span>)
+            <span class="hljs-comment">// 序列化异常，不为该 Task 提供资源，但是不能抛错，允许其他 TaskSet 提交</span>
+            <span class="hljs-keyword">return</span> launchedTask
+        &#125;
+      &#125;
+    &#125;
+    <span class="hljs-keyword">return</span> launchedTask
+&#125;</code></pre></div><p>当资源申请完后，由 Driver 向 Executor 发送启动 Task 的消息 LaunchTask，至此任务调度流程分析完毕。</p><div class="hljs code-wrapper"><pre><code class="hljs scala"><span class="hljs-keyword">private</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">launchTasks</span></span>(tasks: <span class="hljs-type">Seq</span>[<span class="hljs-type">Seq</span>[<span class="hljs-type">TaskDescription</span>]]) &#123;
+      <span class="hljs-keyword">for</span> (task &lt;- tasks.flatten) &#123;
+        <span class="hljs-keyword">val</span> serializedTask = <span class="hljs-type">TaskDescription</span>.encode(task)
+        <span class="hljs-keyword">if</span> (serializedTask.limit() &gt;= maxRpcMessageSize) &#123;
+          <span class="hljs-type">Option</span>(scheduler.taskIdToTaskSetManager.get(task.taskId)).foreach &#123; taskSetMgr =&gt;
+            <span class="hljs-keyword">try</span> &#123;
+              <span class="hljs-keyword">var</span> msg = <span class="hljs-string">&quot;Serialized task %s:%d was %d bytes, which exceeds max allowed: &quot;</span> +
+                <span class="hljs-string">&quot;spark.rpc.message.maxSize (%d bytes). Consider increasing &quot;</span> +
+                <span class="hljs-string">&quot;spark.rpc.message.maxSize or using broadcast variables for large values.&quot;</span>
+              msg = msg.format(task.taskId, task.index, serializedTask.limit(), maxRpcMessageSize)
+              taskSetMgr.abort(msg)
+            &#125; <span class="hljs-keyword">catch</span> &#123;
+              <span class="hljs-keyword">case</span> e: <span class="hljs-type">Exception</span> =&gt; logError(<span class="hljs-string">&quot;Exception in error callback&quot;</span>, e)
+            &#125;
+          &#125;
+        &#125;
+        <span class="hljs-keyword">else</span> &#123;
+          <span class="hljs-keyword">val</span> executorData = executorDataMap(task.executorId)
+          executorData.freeCores -= scheduler.<span class="hljs-type">CPUS_PER_TASK</span>
+
+          logDebug(<span class="hljs-string">s&quot;Launching task <span class="hljs-subst">$&#123;task.taskId&#125;</span> on executor id: <span class="hljs-subst">$&#123;task.executorId&#125;</span> hostname: &quot;</span> +
+            <span class="hljs-string">s&quot;<span class="hljs-subst">$&#123;executorData.executorHost&#125;</span>.&quot;</span>)
+
+          executorData.executorEndpoint.send(<span class="hljs-type">LaunchTask</span>(<span class="hljs-keyword">new</span> <span class="hljs-type">SerializableBuffer</span>(serializedTask)))
+        &#125;
+      &#125;
+&#125;</code></pre></div></div><hr><div><div class="post-metas mb-3"><div class="post-meta mr-3"><i class="iconfont icon-category"></i> <a class="hover-with-bg" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a> <a class="hover-with-bg" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97/">分布式计算</a> <a class="hover-with-bg" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97/Spark/">Spark</a></div><div class="post-meta"><i class="iconfont icon-tags"></i> <a class="hover-with-bg" href="/tags/Spark/">Spark</a></div></div><p class="note note-warning">本博客所有文章除特别声明外，均采用 <a target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/deed.zh" rel="nofollow noopener noopener">CC BY-SA 4.0 协议</a> ，转载请注明出处！</p><div class="post-prevnext"><article class="post-prev col-6"><a href="/2021/04/19/Solr-BlockCache/"><i class="iconfont icon-arrowleft"></i> <span class="hidden-mobile">Solr BlockCache</span> <span class="visible-mobile">上一篇</span></a></article><article class="post-next col-6"><a href="/2021/04/06/Spark-SQL-%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B/"><span class="hidden-mobile">Spark SQL 执行流程</span> <span class="visible-mobile">下一篇</span> <i class="iconfont icon-arrowright"></i></a></article></div></div><article class="comments" id="comments" lazyload><div id="valine"></div><script type="text/javascript">Fluid.utils.loadComments("#valine",(function(){Fluid.utils.createScript("https://cdn.jsdelivr.net/npm/valine@1.4.14/dist/Valine.min.js",(function(){new Valine({el:"#valine",app_id:"gffo4y4h3e1D9tHT2ADcTxtp-gzGzoHsz",app_key:"EaplHXnXAqIYs5wCxGMVB4l4",placeholder:"说点什么",path:window.location.pathname,avatar:"robohash",meta:["nick","mail"],pageSize:"10",lang:"zh-CN",highlight:!0,recordIP:!0,serverURLs:""})}))}))</script><noscript>Please enable JavaScript to view the comments</noscript></article></article></div></div></div><div class="d-none d-lg-block col-lg-2 toc-container" id="toc-ctn"><div id="toc"><p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p><div class="toc-body" id="toc-body"></div></div></div></div></div><a id="scroll-top-button" href="#" role="button"><i class="iconfont icon-arrowup" aria-hidden="true"></i></a><div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable modal-lg" role="document"><div class="modal-content"><div class="modal-header text-center"><h4 class="modal-title w-100 font-weight-bold">搜索</h4><button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button></div><div class="modal-body mx-3"><div class="md-form mb-5"><input type="text" id="local-search-input" class="form-control validate"> <label data-error="x" data-success="v" for="local-search-input">关键词</label></div><div class="list-group" id="local-search-result"></div></div></div></div></div></main><footer class="text-center mt-5 py-3"><div class="footer-content"><a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a></div><div class="statistics"><span id="leancloud-site-pv-container" style="display:none">总访问量 <span id="leancloud-site-pv"></span> 次 </span><span id="leancloud-site-uv-container" style="display:none">总访客数 <span id="leancloud-site-uv"></span> 人</span></div></footer><script src="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.min.css"><script>NProgress.configure({showSpinner:!1,trickleSpeed:100}),NProgress.start(),window.addEventListener("load",(function(){NProgress.done()}))</script><script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js"></script><script src="/js/events.js"></script><script src="/js/plugins.js"></script><script src="/js/img-lazyload.js"></script><script src="https://cdn.jsdelivr.net/npm/tocbot@4.12.2/dist/tocbot.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/anchor-js@4.3.0/anchor.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js"></script><script defer src="/js/leancloud.js"></script><script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.11/lib/typed.min.js"></script><script>!function(t,i){(0,Fluid.plugins.typing)(i.getElementById("subtitle").title)}(window,document)</script><script src="/js/local-search.js"></script><script>$("#local-search-input").on("click",(function(){searchFunc("/local-search.xml","local-search-input","local-search-result")})),$("#modalSearch").on("shown.bs.modal",(function(){$("#local-search-input").focus()}))</script><script src="/js/boot.js"></script></body></html>
